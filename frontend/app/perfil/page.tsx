@@ -47,7 +47,7 @@ export default function Perfil() {
           </button>
 
           <Link
-            href="/configuracoes"
+            href="/configuracao"
             className="flex items-center justify-center hover:opacity-70 transition"
             aria-label="Configurações"
           >

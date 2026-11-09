@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 
 export default function CadastroItensPeridos() {
@@ -102,7 +103,10 @@ export default function CadastroItensPeridos() {
         {/* TOPO */}
         <div className="mb-9">
 
-          <button className="mb-6 flex items-center gap-2 text-lg font-bold italic text-[#59558a] hover:underline">
+          <Link
+            href="/meus-itens"
+            className="mb-6 flex items-center gap-2 text-lg font-bold italic text-[#59558a] hover:underline"
+          >
             Ver seus itens
 
             <svg
@@ -115,7 +119,7 @@ export default function CadastroItensPeridos() {
             >
               <path d="m9 18 6-6-6-6" />
             </svg>
-          </button>
+          </Link>
 
           <h1 className="text-5xl font-black italic leading-tight">
             Cadastre o item

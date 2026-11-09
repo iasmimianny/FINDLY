@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ChangeEvent } from "react";
 import {
   Package,
   Plus,
@@ -15,8 +15,17 @@ import {
   X,
 } from "lucide-react";
 
+type Item = {
+  id: string;
+  titulo: string;
+  categoria: string;
+  data: string;
+  status: "Perdido" | "Encontrado";
+  fotos: string[];
+};
+
 export default function MeusItens() {
-  const [itens, setItens] = useState([
+  const [itens, setItens] = useState<Item[]>([
     {
       id: "1",
       titulo: "Carteira de Couro Preta",
@@ -35,21 +44,21 @@ export default function MeusItens() {
     },
   ]);
 
-  const [itemSelecionado, setItemSelecionado] = useState(null);
-  const [novasFotos, setNovasFotos] = useState([]);
+  const [itemSelecionado, setItemSelecionado] = useState<Item | null>(null);
+  const [novasFotos, setNovasFotos] = useState<string[]>([]);
 
-  function handleOpenUploadModal(item) {
+  function handleOpenUploadModal(item: Item) {
     setItemSelecionado(item);
     setNovasFotos([]);
   }
 
-  function handleFileChange(e) {
-    const files = Array.from(e.target.files);
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     const mockUrls = files.map((file) => URL.createObjectURL(file));
     setNovasFotos((prev) => [...prev, ...mockUrls]);
   }
 
-  function handleRemoveFoto(index) {
+  function handleRemoveFoto(index: number) {
     setNovasFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -99,7 +108,7 @@ export default function MeusItens() {
           </button>
 
           <Link
-            href="/configuracoes"
+            href="/configuracao"
             className="flex items-center justify-center hover:opacity-70 transition"
             aria-label="Configurações"
           >
