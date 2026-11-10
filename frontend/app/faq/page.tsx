@@ -4,11 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, Settings, ChevronDown } from "lucide-react";
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 export default function FAQPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  // Lista de perguntas e respostas adaptadas para o FINDLY / UNIFIP
   const faqList = [
     {
       pergunta: "Como funciona o cadastro e busca de pertences?",
@@ -47,43 +47,9 @@ export default function FAQPage() {
   };
 
   return (
+    <PrivateLayout>
     <main className="min-h-screen bg-white text-black font-sans flex flex-col justify-between">
       <div>
-        {/* --- CABEÇALHO / HEADER --- */}
-        <header className="flex h-[74px] items-center justify-between bg-black px-8 text-white">
-          <div className="flex items-center gap-4">
-            <Link href="/">
-              <Image
-                src="/logo-findly.jpg"
-                alt="Findly"
-                width={48}
-                height={48}
-                className="rounded-full object-cover"
-              />
-            </Link>
-            <span className="text-lg font-medium tracking-wide">FINDLY</span>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="flex items-center gap-2 font-bold italic hover:opacity-70 transition"
-            >
-              <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-              Voltar
-            </button>
-
-            <Link
-              href="/configuracao"
-              className="hover:opacity-70 transition"
-              title="Configurações"
-            >
-              <Settings className="w-6 h-6 text-white" />
-            </Link>
-          </div>
-        </header>
-
         {/* --- CONTEÚDO PRINCIPAL --- */}
         <div className="mx-auto max-w-5xl px-6 py-10">
           
@@ -140,5 +106,5 @@ export default function FAQPage() {
         FINDLY — Sistema de Achados e Perdidos UNIFIP
       </footer>
     </main>
-  );
-}
+  </PrivateLayout>
+)}

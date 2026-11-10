@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type ChangeEvent } from "react";
 import { ArrowLeft, CalendarDays, MapPin, Search, Star, X } from "lucide-react";
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 type Favorito = {
   id: number;
@@ -82,33 +83,10 @@ export default function ItensFavoritos() {
   }
 
   return (
+    <PrivateLayout>
     <main className="min-h-screen bg-gray-50 text-black">
-      <header className="bg-black text-white">
-        <div className="mx-auto flex h-[74px] max-w-5xl items-center justify-between gap-4 px-6">
-          <Link href="/" className="flex items-center gap-3" aria-label="Findly, página inicial">
-            <Image
-              src="/logo-findly.jpg"
-              alt=""
-              width={44}
-              height={44}
-              className="rounded-full object-cover"
-            />
-            <span className="font-bold tracking-wide">FINDLY</span>
-          </Link>
-          <Link href="/meus-itens" className="text-sm font-semibold hover:text-[#42a5df]">
-            Meus itens
-          </Link>
-        </div>
-      </header>
 
       <div className="mx-auto max-w-5xl px-6 py-10">
-        <Link
-          href="/"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-black"
-        >
-          <ArrowLeft size={17} />
-          Voltar ao início
-        </Link>
 
         <div className="mb-7">
           <h1 className="flex items-center gap-3 text-4xl font-black italic">
@@ -211,5 +189,6 @@ export default function ItensFavoritos() {
         </p>
       </div>
     </main>
+    </PrivateLayout>
   );
 }

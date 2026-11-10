@@ -1,9 +1,19 @@
+
 "use client";
 
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { useState, type ChangeEvent } from "react";
-import { Package, Tag, MapPin, Calendar, Camera, ArrowLeft, Settings, CheckCircle2, X } from "lucide-react";
+import {
+  Package,
+  Tag,
+  MapPin,
+  Calendar,
+  Camera,
+  CheckCircle2,
+  X,
+  Upload,
+} from "lucide-react";
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 type FotoItem = {
   file: File;
@@ -22,55 +32,58 @@ export default function CadastrarItem() {
 
   const maxFotos = 6;
 
+  const hoje = new Date();
+  const dataHoje = [
+    hoje.getFullYear(),
+    String(hoje.getMonth() + 1).padStart(2, "0"),
+    String(hoje.getDate()).padStart(2, "0"),
+  ].join("-");
+
   function handleFotoChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
-    const remainingSlots = maxFotos - fotos.length;
-    if (remainingSlots <= 0) {
+    const vagas = maxFotos - fotos.length;
+
+    if (vagas <= 0) {
       e.target.value = "";
       return;
     }
 
-    const filesToAdd = files.slice(0, remainingSlots);
-    const newPhotoObjects = filesToAdd.map((file) => ({
+    const arquivosSelecionados = files.slice(0, vagas);
+
+    const novasFotos = arquivosSelecionados.map((file) => ({
       file,
       previewUrl: URL.createObjectURL(file),
     }));
 
-    setFotos((prev) => [...prev, ...newPhotoObjects]);
+    setFotos((prev) => [...prev, ...novasFotos]);
     e.target.value = "";
   }
 
-  function handleRemoveFoto(indexToRemove) {
+  function handleRemoveFoto(index: number) {
     setFotos((prev) => {
-      const itemToRemove = prev[indexToRemove];
-      if (itemToRemove?.previewUrl) {
-        URL.revokeObjectURL(itemToRemove.previewUrl);
+      const foto = prev[index];
+
+      if (foto?.previewUrl) {
+        URL.revokeObjectURL(foto.previewUrl);
       }
-      return prev.filter((_, idx) => idx !== indexToRemove);
+
+      return prev.filter((_, i) => i !== index);
     });
   }
 
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!data) {
-      return;
-    }
-
-    const dataOcorrencia = new Date(data);
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    if (dataOcorrencia > hoje) {
+    if (!data || data > dataHoje) {
       return;
     }
 
     setCadastrado(true);
 
     fotos.forEach((foto) => {
-      if (foto.previewUrl) URL.revokeObjectURL(foto.previewUrl);
+      URL.revokeObjectURL(foto.previewUrl);
     });
 
     setTitulo("");
@@ -83,226 +96,275 @@ export default function CadastrarItem() {
     setTimeout(() => setCadastrado(false), 4000);
   }
 
+  const inputClass =
+    "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#42a5df] focus:ring-2 focus:ring-[#42a5df]/20";
+
+  const cardClass =
+    "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
+
   return (
-    <main className="min-h-screen bg-white text-black font-sans">
-      <header className="flex h-[74px] items-center justify-between bg-black px-8 text-white">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Image
-              src="/logo-findly.jpg"
-              alt="Findly"
-              width={48}
-              height={48}
-              className="rounded-full object-cover"
-            />
-          </Link>
-          <span className="text-lg font-medium tracking-wide">FINDLY</span>
-        </div>
+    <PrivateLayout>
+      <div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-10">
 
-        <div className="flex items-center gap-6">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2 font-bold italic hover:opacity-70 transition"
-          >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-            Voltar
-          </button>
+        {/* Cabeçalho da página */}
+        <div className="mb-8">
+          <span className="text-sm font-semibold text-[#42a5df]">
+            MEUS REGISTROS
+          </span>
 
-          <Link
-            href="/configuracao"
-            className="flex items-center justify-center hover:opacity-70 transition"
-            aria-label="Configurações"
-          >
-            <Settings className="w-6 h-6" />
-          </Link>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-9">
-          <h1 className="text-5xl font-black italic leading-tight">
-            Cadastrar Item<br />
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+            Cadastrar item
           </h1>
 
-          <div className="mt-3 h-1 w-40 bg-[#42a5df]" />
-
-          <p className="mt-5 max-w-xl text-base text-gray-500">
-            Cadastre as informações do objeto perdido ou encontrado no campus da UNIFIP.
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-500">
+            Informe os detalhes do objeto perdido ou encontrado no campus
+            da UNIFIP para ajudar a conectar pessoas e objetos.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-3xl bg-[#f8f8f8] p-6 shadow-sm md:p-8">
-          <div className="mb-8">
-            <label className="mb-3 block text-lg font-bold italic">
-              Tipo de Registro
-            </label>
-            <div className="flex gap-4">
+        <form onSubmit={handleSubmit}>
+
+          {/* Tipo de registro */}
+          <section className={`${cardClass} mb-6`}>
+            <div className="mb-4">
+              <h2 className="text-lg font-bold text-gray-900">
+                Tipo de registro
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                O que aconteceu com o objeto?
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 type="button"
                 aria-pressed={tipo === "perdido"}
                 onClick={() => setTipo("perdido")}
-                className={`rounded-xl px-6 py-3 font-bold italic transition ${tipo === "perdido"
-                    ? "bg-black text-white"
-                    : "bg-[#d5d5d5] text-black hover:bg-gray-300"
-                  }`}
+                className={`rounded-xl border px-5 py-4 text-sm font-semibold transition ${
+                  tipo === "perdido"
+                    ? "border-black bg-black text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                }`}
               >
-                Perdi um Item
+                Perdi um item
               </button>
+
               <button
                 type="button"
                 aria-pressed={tipo === "achado"}
                 onClick={() => setTipo("achado")}
-                className={`rounded-xl px-6 py-3 font-bold italic transition ${tipo === "achado"
-                    ? "bg-black text-white"
-                    : "bg-[#d5d5d5] text-black hover:bg-gray-300"
-                  }`}
+                className={`rounded-xl border px-5 py-4 text-sm font-semibold transition ${
+                  tipo === "achado"
+                    ? "border-black bg-black text-white"
+                    : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
+                }`}
               >
-                Encontrei um Item
+                Encontrei um item
               </button>
             </div>
-          </div>
+          </section>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div className="rounded-2xl bg-[#d5d5d5] p-5">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                <Package className="w-6 h-6 text-black shrink-0" />
-                Título / Nome do Item:
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={80}
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ex: Garrafa Térmica Azul"
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base"
-              />
+          {/* Informações do item */}
+          <section className={`${cardClass} mb-6`}>
+            <div className="mb-6">
+              <h2 className="text-lg font-bold text-gray-900">
+                Informações do item
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Preencha os dados para identificar o objeto.
+              </p>
             </div>
 
-            <div className="rounded-2xl bg-[#d5d5d5] p-5">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                <Tag className="w-6 h-6 text-black shrink-0" />
-                Categoria:
-              </label>
-              <select
-                required
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base"
-              >
-                <option value="" disabled>
-                  Selecione uma categoria
-                </option>
-                <option value="Eletrônicos">Eletrônicos</option>
-                <option value="Documentos">Documentos</option>
-                <option value="Acessórios">Acessórios</option>
-                <option value="Roupas">Roupas</option>
-                <option value="Chaves">Chaves</option>
-                <option value="Outros">Outros</option>
-              </select>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Package size={17} />
+                  Nome do item
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  maxLength={80}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  placeholder="Ex.: Garrafa térmica azul"
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Tag size={17} />
+                  Categoria
+                </label>
+
+                <select
+                  required
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  className={inputClass}
+                >
+                  <option value="" disabled>
+                    Selecione uma categoria
+                  </option>
+                  <option value="Eletrônicos">Eletrônicos</option>
+                  <option value="Documentos">Documentos</option>
+                  <option value="Acessórios">Acessórios</option>
+                  <option value="Roupas">Roupas</option>
+                  <option value="Chaves">Chaves</option>
+                  <option value="Outros">Outros</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <MapPin size={17} />
+                  Local no campus
+                </label>
+
+                <input
+                  type="text"
+                  required
+                  maxLength={120}
+                  value={local}
+                  onChange={(e) => setLocal(e.target.value)}
+                  placeholder="Ex.: Bloco B, Biblioteca..."
+                  className={inputClass}
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Calendar size={17} />
+                  Data da ocorrência
+                </label>
+
+                <input
+                  type="date"
+                  required
+                  max={dataHoje}
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Descrição detalhada
+                </label>
+
+                <textarea
+                  rows={4}
+                  maxLength={500}
+                  value={descricao}
+                  onChange={(e) => setDescricao(e.target.value)}
+                  placeholder="Informe características como cor, marca, estado de conservação e outros detalhes..."
+                  className={`${inputClass} resize-none`}
+                />
+
+                <p className="mt-1 text-right text-xs text-gray-400">
+                  {descricao.length}/500 caracteres
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Fotos */}
+          <section className={`${cardClass} mb-6`}>
+            <div className="mb-5">
+              <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+                <Camera size={20} />
+                Fotos do item
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Adicione imagens que ajudem na identificação do objeto.
+              </p>
             </div>
 
-            <div className="rounded-2xl bg-[#d5d5d5] p-5">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                <MapPin className="w-6 h-6 text-black shrink-0" />
-                Local no Campus:
-              </label>
-              <input
-                type="text"
-                required
-                maxLength={120}
-                value={local}
-                onChange={(e) => setLocal(e.target.value)}
-                placeholder="Ex: Bloco B, Biblioteca, Praça de Alimentação"
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base"
-              />
-            </div>
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center transition hover:border-[#42a5df] hover:bg-blue-50/40">
+              <Upload size={28} className="mb-3 text-gray-500" />
 
-            <div className="rounded-2xl bg-[#d5d5d5] p-5">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                <Calendar className="w-6 h-6 text-black shrink-0" />
-                Data da Ocorrência:
-              </label>
-              <input
-                type="date"
-                required
-                value={data}
-                max={new Date().toISOString().split("T")[0]}
-                onChange={(e) => setData(e.target.value)}
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base text-black font-medium cursor-pointer"
-              />
-            </div>
+              <span className="text-sm font-semibold text-gray-700">
+                Clique para selecionar fotos
+              </span>
 
-            <div className="rounded-2xl bg-[#d5d5d5] p-5 md:col-span-2">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                Descrição Detalhada:
-              </label>
-              <textarea
-                rows={3}
-                maxLength={500}
-                value={descricao}
-                onChange={(e) => setDescricao(e.target.value)}
-                placeholder="Adicione detalhes como marcas de uso, cor exata, capas ou características marcantes..."
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base resize-none"
-              />
-            </div>
+              <span className="mt-1 text-xs text-gray-400">
+                Imagens • Máximo de 6 fotos
+              </span>
 
-            <div className="rounded-2xl bg-[#d5d5d5] p-5 md:col-span-2">
-              <label className="mb-3 flex items-center gap-3 text-lg font-bold italic">
-                <Camera className="w-6 h-6 text-black shrink-0" />
-                Anexar Fotos:
-              </label>
               <input
                 type="file"
                 multiple
                 accept="image/*"
                 onChange={handleFotoChange}
-                className="w-full rounded-xl bg-white px-4 py-3 outline-none text-base file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:italic file:bg-black file:text-white hover:file:bg-gray-800"
+                disabled={fotos.length >= maxFotos}
+                className="hidden"
               />
-              <p className="mt-2 text-sm text-gray-600">Máximo de {maxFotos} fotos por cadastro.</p>
-              {fotos.length > 0 && (
-                <div className="mt-4 flex gap-3 overflow-x-auto pb-2">
-                  {fotos.map((item, idx) => (
-                    <div key={idx} className="relative shrink-0">
-                      <Image
-                        src={item.previewUrl}
-                        alt={`Preview ${idx + 1}`}
-                        width={112}
-                        height={112}
-                        unoptimized
-                        className="mt-2 h-28 w-28 rounded-2xl object-cover shadow-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFoto(idx)}
-                        className="absolute -top-2 -right-2 bg-black text-white rounded-full p-1 shadow-md hover:bg-red-600 transition"
-                        title="Remover foto"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+            </label>
+
+            <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+              <span>Você pode adicionar até {maxFotos} imagens.</span>
+              <span>{fotos.length}/{maxFotos} selecionadas</span>
             </div>
+
+            {fotos.length > 0 && (
+              <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
+                {fotos.map((item, idx) => (
+                  <div key={item.previewUrl} className="relative">
+                    <Image
+                      src={item.previewUrl}
+                      alt={`Foto ${idx + 1}`}
+                      width={160}
+                      height={160}
+                      unoptimized
+                      className="h-28 w-full rounded-xl object-cover"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFoto(idx)}
+                      title="Remover foto"
+                      className="absolute -right-2 -top-2 rounded-full bg-black p-1.5 text-white shadow transition hover:bg-red-600"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Confirmação */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs text-gray-500">
+              Confira as informações antes de finalizar o cadastro.
+            </p>
+
+            <button
+              type="submit"
+              className="rounded-xl bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-gray-800"
+            >
+              Cadastrar item
+            </button>
           </div>
 
-          <button
-            type="submit"
-            className="mt-6 w-full rounded-2xl bg-black px-6 py-4 text-lg font-bold italic text-white transition hover:bg-gray-800"
-          >
-            Cadastrar Item
-          </button>
-
           {cadastrado && (
-            <div className="mt-4 rounded-2xl border border-green-300 bg-green-50 p-4 text-center font-semibold text-green-700 flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-5 h-5" />
-              {tipo === "perdido" ? "Item perdido cadastrado com sucesso!" : "Item encontrado cadastrado com sucesso!"}
+            <div className="mt-5 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
+              <CheckCircle2 size={20} />
+
+              {tipo === "perdido"
+                ? "Item perdido cadastrado com sucesso!"
+                : "Item encontrado cadastrado com sucesso!"}
             </div>
           )}
         </form>
       </div>
-    </main>
+    </PrivateLayout>
   );
 }

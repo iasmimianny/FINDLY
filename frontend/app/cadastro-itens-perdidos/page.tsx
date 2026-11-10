@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 export default function CadastroItensPeridos() {
   const [tipo, setTipo] = useState("perdido");
@@ -32,71 +33,8 @@ export default function CadastroItensPeridos() {
   }
 
   return (
+    <PrivateLayout>
     <main className="min-h-screen bg-white text-black">
-
-      {/* CABEÇALHO */}
-<header className="flex h-[74px] items-center justify-between bg-black px-8 text-white">
-
-  <div className="flex items-center gap-4">
-    <Image
-      src="/logo-findly.jpg"
-      alt="Findly"
-      width={48}
-      height={48}
-      className="rounded-full"
-    />
-
-    <span className="text-lg font-medium tracking-wide">
-      FINDLY
-    </span>
-  </div>
-
-  <div className="flex items-center gap-6">
-
-    <button
-      className="flex items-center gap-2 font-bold italic hover:opacity-70"
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M19 12H5" />
-        <path d="M12 19l-7-7 7-7" />
-      </svg>
-
-      Voltar
-    </button>
-
-    {/* CONFIGURAÇÕES */}
-    <button
-      className="flex items-center justify-center hover:opacity-70"
-      aria-label="Configurações"
-    >
-      <svg
-        width="28"
-        height="28"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M12 2.5a2 2 0 0 1 2 2v.2a7.5 7.5 0 0 1 1.7.7l.15-.15a2 2 0 1 1 2.83 2.83l-.15.15a7.5 7.5 0 0 1 .7 1.7h.2a2 2 0 1 1 0 4h-.2a7.5 7.5 0 0 1-.7 1.7l.15.15a2 2 0 1 1-2.83 2.83l-.15-.15a7.5 7.5 0 0 1-1.7.7v.2a2 2 0 1 1-4 0v-.2a7.5 7.5 0 0 1-1.7-.7l-.15.15a2 2 0 1 1-2.83-2.83l.15-.15a7.5 7.5 0 0 1-.7-1.7h-.2a2 2 0 1 1 0-4h.2a7.5 7.5 0 0 1 .7-1.7l-.15-.15a2 2 0 1 1 2.83-2.83l.15.15a7.5 7.5 0 0 1 1.7-.7v-.2a2 2 0 0 1 2-2Z" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    </button>
-
-  </div>
-</header>
-
-
       {/* CONTEÚDO */}
       <div className="mx-auto max-w-6xl px-6 py-10">
 
@@ -481,5 +419,6 @@ export default function CadastroItensPeridos() {
       </div>
 
     </main>
+    </PrivateLayout>
   );
 }

@@ -14,7 +14,7 @@ import {
   Image as ImageIcon,
   X,
 } from "lucide-react";
-
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 type Item = {
   id: string;
   titulo: string;
@@ -82,40 +82,8 @@ export default function MeusItens() {
   }
 
   return (
+    <PrivateLayout>
     <main className="min-h-screen bg-white text-black font-sans">
-      <header className="flex h-[74px] items-center justify-between bg-black px-8 text-white">
-        <div className="flex items-center gap-4">
-          <Link href="/">
-            <Image
-              src="/logo-findly.jpg"
-              alt="Findly"
-              width={48}
-              height={48}
-              className="rounded-full object-cover"
-            />
-          </Link>
-          <span className="text-lg font-medium tracking-wide">FINDLY</span>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <button
-            type="button"
-            onClick={() => window.history.back()}
-            className="flex items-center gap-2 font-bold italic hover:opacity-70 transition"
-          >
-            <ArrowLeft className="w-5 h-5 stroke-[2.5]" />
-            Voltar
-          </button>
-
-          <Link
-            href="/configuracao"
-            className="flex items-center justify-center hover:opacity-70 transition"
-            aria-label="Configurações"
-          >
-            <Settings className="w-6 h-6" />
-          </Link>
-        </div>
-      </header>
 
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-9 flex flex-wrap items-center justify-between gap-4">
@@ -278,5 +246,6 @@ export default function MeusItens() {
         </div>
       )}
     </main>
+    </PrivateLayout>
   );
 }
