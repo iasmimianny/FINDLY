@@ -318,6 +318,11 @@ CACHES = {
         "TIMEOUT": 300,
     }
 }
+if DEBUG:
+    CACHES["default"] = {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "findly-dev",
+    }
 
 # ===========================================================================
 # 12. Celery (Redis) e e-mail
