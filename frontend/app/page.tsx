@@ -106,13 +106,6 @@ export default function FindlyLandingPage() {
               Sobre o Findly
             </a>
           </div>
-
-          <Link
-            href="/perfil"
-            className="rounded-full border border-white/35 px-5 py-2.5 text-sm font-semibold transition hover:bg-white hover:text-black"
-          >
-            Minha Conta
-          </Link>
         </nav>
 
         {/* Hero */}
@@ -136,7 +129,7 @@ export default function FindlyLandingPage() {
 
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link
-                href="/cadastro-itens-perdidos"
+                href="/login"
                 className="inline-flex items-center gap-3 rounded-full bg-[#DCDCDC] px-7 py-4 text-sm font-bold text-black shadow-lg shadow-black/20 transition hover:-translate-y-0.5 hover:bg-white"
               >
                 Cadastrar um item
@@ -352,7 +345,7 @@ export default function FindlyLandingPage() {
           </div>
 
           <Link
-            href="/cadastro-itens-perdidos"
+            href="/login"
             className="inline-flex shrink-0 items-center gap-3 rounded-full bg-[#DCDCDC] px-7 py-4 text-sm font-bold text-black transition hover:bg-white"
           >
             Começar agora
