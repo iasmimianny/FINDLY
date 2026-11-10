@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -54,11 +53,11 @@ export default function Sidebar() {
   ];
 
   const menuSecundario = [
-    {
-      nome: "Cadastrar item perdido",
-      rota: "/cadastro-itens-perdidos",
-      Icone: PlusIcon,
-    },
+    // {
+    //   nome: "Cadastrar item perdido",
+    //   rota: "/cadastro-itens-perdidos",
+    //   Icone: PlusIcon,
+    // },
     {
       nome: "Ajuda / FAQ",
       rota: "/faq",
@@ -79,9 +78,7 @@ export default function Sidebar() {
           alt="Findly"
           className="h-11 w-11 rounded-full object-cover"
         />
-        <span className="text-xl font-bold tracking-widest">
-          FINDLY
-        </span>
+        <span className="text-xl font-bold tracking-widest">FINDLY</span>
       </div>
 
       <nav className="flex-1 px-4">
@@ -127,13 +124,15 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-gray-800 px-4 py-5">
-        <button
-          onClick={() => router.push("/login")}
-          className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-gray-400 transition-colors hover:bg-[#1E2022] hover:text-white"
-        >
-          <LogOut className="h-5 w-5" />
-          Sair
-        </button>
+        <form action="/api/auth/logout" method="post" className="shrink-0">
+          <button
+            type="submit"
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-gray-400 transition-colors hover:bg-[#1E2022] hover:text-white"
+          >
+            <LogOut className="h-5 w-5" />
+            Sair
+          </button>
+        </form>
 
         <div className="mt-4 px-4 text-xs text-gray-500">
           <p>Campus UNIFIP</p>

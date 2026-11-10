@@ -1,9 +1,16 @@
+
 "use client";
 
 import Image from "next/image";
 import Link from "next/link";
 import { useState, type ChangeEvent } from "react";
-import { ArrowLeft, CalendarDays, MapPin, Search, Star, X } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  Search,
+  Star,
+  X,
+} from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 type Favorito = {
@@ -24,7 +31,8 @@ const favoritosIniciais: Favorito[] = [
     local: "Bloco A",
     data: "18/10/2026",
     status: "Perdido",
-    imagem: "https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&auto=format&fit=crop&q=80",
+    imagem:
+      "https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&auto=format&fit=crop&q=80",
   },
   {
     id: 2,
@@ -42,7 +50,8 @@ const favoritosIniciais: Favorito[] = [
     local: "Biblioteca",
     data: "17/10/2026",
     status: "Encontrado",
-    imagem: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80",
+    imagem:
+      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80",
   },
   {
     id: 4,
@@ -51,7 +60,8 @@ const favoritosIniciais: Favorito[] = [
     local: "Cantina",
     data: "16/10/2026",
     status: "Perdido",
-    imagem: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=80",
+    imagem:
+      "https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&auto=format&fit=crop&q=80",
   },
   {
     id: 5,
@@ -79,116 +89,167 @@ export default function ItensFavoritos() {
   }
 
   function removerFavorito(id: number) {
-    setFavoritos((itensAtuais) => itensAtuais.filter((item) => item.id !== id));
+    setFavoritos((itensAtuais) =>
+      itensAtuais.filter((item) => item.id !== id)
+    );
   }
+
+  const cardClass =
+    "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
 
   return (
     <PrivateLayout>
-    <main className="min-h-screen bg-gray-50 text-black">
+      <main className="min-h-screen bg-white text-gray-900 font-sans">
+        <div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-10">
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
-
-        <div className="mb-7">
-          <h1 className="flex items-center gap-3 text-4xl font-black italic">
-            Itens favoritos
-            <Star className="h-7 w-7 fill-amber-400 text-amber-400" />
-          </h1>
-          <p className="mt-2 text-gray-600">Itens salvos para acompanhar mais tarde.</p>
-        </div>
-
-        <label className="relative mb-5 block">
-          <span className="sr-only">Buscar nos favoritos</span>
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-          <input
-            type="search"
-            value={busca}
-            onChange={handleBuscaChange}
-            placeholder="Buscar por item ou local"
-            className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 outline-none focus:border-[#42a5df]"
-          />
-        </label>
-
-        <p className="mb-3 text-sm text-gray-500">
-          {favoritosFiltrados.length}{" "}
-          {favoritosFiltrados.length === 1 ? "item salvo" : "itens salvos"}
-        </p>
-
-        {favoritosFiltrados.length > 0 ? (
-          <section className="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white px-5">
-            {favoritosFiltrados.map((item) => (
-              <article key={item.id} className="flex items-center gap-4 py-4">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                  <Image
-                    src={item.imagem}
-                    alt={item.titulo}
-                    fill
-                    sizes="64px"
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="truncate font-bold">{item.titulo}</h2>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                        item.status === "Encontrado"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-500">{item.categoria}</p>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                    <span className="inline-flex items-center gap-1.5">
-                      <MapPin size={14} />
-                      {item.local}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5">
-                      <CalendarDays size={14} />
-                      {item.data}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removerFavorito(item.id)}
-                  aria-label={`Remover ${item.titulo} dos favoritos`}
-                  className="shrink-0 rounded-full p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
-                >
-                  <X size={18} />
-                </button>
-              </article>
-            ))}
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-dashed border-gray-300 bg-white px-6 py-10 text-center">
-            <Star className="mx-auto h-8 w-8 text-amber-400" />
-            <h2 className="mt-3 font-bold">
-              {favoritos.length === 0 ? "Sua lista de favoritos está vazia" : "Nenhum favorito encontrado"}
-            </h2>
-            <p className="mt-1 text-sm text-gray-500">
-              {favoritos.length === 0
-                ? "Explore os itens perdidos e salve os que deseja acompanhar."
-                : "Tente buscar por outro item ou local."}
+          {/* Cabeçalho */}
+          <div className="mb-8">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+              MEUS REGISTROS
             </p>
-            {favoritos.length === 0 && (
-              <Link
-                href="/itens-perdidos"
-                className="mt-5 inline-flex rounded-xl bg-black px-4 py-3 text-sm font-bold text-white hover:bg-gray-800"
-              >
-                Explorar itens perdidos
-              </Link>
-            )}
-          </section>
-        )}
 
-        <p className="mt-5 text-xs text-gray-500">
-          Estes são exemplos locais; seus favoritos não ficam salvos após recarregar a página.
-        </p>
-      </div>
-    </main>
+            <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+              Itens favoritos
+              <Star className="h-7 w-7 fill-amber-400 text-amber-400" />
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
+              Acompanhe os itens que você salvou para consultar posteriormente.
+            </p>
+          </div>
+
+          {/* Campo de busca */}
+          <div className={`${cardClass} mb-5`}>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Buscar favoritos
+            </label>
+
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+
+              <input
+                type="search"
+                value={busca}
+                onChange={handleBuscaChange}
+                placeholder="Buscar por item, categoria ou local"
+                className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#42a5df] focus:ring-2 focus:ring-[#42a5df]/20"
+              />
+            </div>
+          </div>
+
+          {/* Quantidade de favoritos */}
+          <p className="mb-3 text-sm text-gray-500">
+            {favoritosFiltrados.length}{" "}
+            {favoritosFiltrados.length === 1 ? "item salvo" : "itens salvos"}
+          </p>
+
+          {/* Lista de favoritos */}
+          {favoritosFiltrados.length > 0 ? (
+            <section className={cardClass}>
+              <div className="mb-5">
+                <h2 className="text-lg font-bold text-gray-900">
+                  Sua lista de favoritos
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Itens que você deseja acompanhar.
+                </p>
+              </div>
+
+              <div className="divide-y divide-gray-100">
+                {favoritosFiltrados.map((item) => (
+                  <article
+                    key={item.id}
+                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                  >
+                    {/* Imagem */}
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+                      <Image
+                        src={item.imagem}
+                        alt={item.titulo}
+                        fill
+                        sizes="64px"
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Informações */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="truncate font-semibold text-gray-900">
+                          {item.titulo}
+                        </h3>
+
+                        <span
+                          className={`rounded-lg px-3 py-1 text-xs font-semibold ${
+                            item.status === "Encontrado"
+                              ? "bg-green-50 text-green-700"
+                              : "bg-red-50 text-red-700"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        {item.categoria}
+                      </p>
+
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {item.local}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {item.data}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Remover favorito */}
+                    <button
+                      type="button"
+                      onClick={() => removerFavorito(item.id)}
+                      aria-label={`Remover ${item.titulo} dos favoritos`}
+                      className="shrink-0 rounded-xl p-2 text-gray-400 transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : (
+            /* Lista vazia */
+            <section className={`${cardClass} py-10 text-center`}>
+              <Star className="mx-auto h-9 w-9 text-amber-400" />
+
+              <h2 className="mt-3 font-bold text-gray-900">
+                {favoritos.length === 0
+                  ? "Sua lista de favoritos está vazia"
+                  : "Nenhum favorito encontrado"}
+              </h2>
+
+              <p className="mt-2 text-sm text-gray-500">
+                {favoritos.length === 0
+                  ? "Explore os itens perdidos e salve aqueles que deseja acompanhar."
+                  : "Tente buscar por outro item ou local."}
+              </p>
+
+              {favoritos.length === 0 && (
+                <Link
+                  href="/itens-perdidos"
+                  className="mt-5 inline-flex items-center rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
+                >
+                  Explorar itens perdidos
+                </Link>
+              )}
+            </section>
+          )}
+        </div>
+      </main>
     </PrivateLayout>
   );
 }

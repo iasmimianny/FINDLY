@@ -1,16 +1,10 @@
-
 "use client";
 
 import Link from "next/link";
-import { useState, type ChangeEvent } from "react";
-import {
-  CalendarDays,
-  MapPin,
-  Plus,
-  Search,
-} from "lucide-react";
-import PrivateLayout from "../components/funcionario/PrivateLayout";
 import Image from "next/image";
+import { useState, type ChangeEvent } from "react";
+import { CalendarDays, MapPin, Plus, Search, Package } from "lucide-react";
+import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 const itensPerdidos = [
   {
@@ -64,94 +58,145 @@ export default function ItensPerdidos() {
   const itensFiltrados = itensPerdidos.filter((item) =>
     `${item.titulo} ${item.categoria} ${item.local}`
       .toLowerCase()
-      .includes(busca.trim().toLowerCase())
+      .includes(busca.trim().toLowerCase()),
   );
 
   function handleBuscaChange(event: ChangeEvent<HTMLInputElement>) {
     setBusca(event.target.value);
   }
 
+  const cardClass = "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
+
   return (
     <PrivateLayout>
-      <main className="min-h-screen bg-gray-50 px-6 py-10 text-black md:px-10">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-4xl font-black italic">
-                Itens perdidos
-              </h1>
-              <p className="mt-2 text-gray-600">
-                Veja os registros recentes no campus.
-              </p>
-            </div>
+      <main className="min-h-screen bg-white text-gray-900 font-sans">
+        <div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-10">
+          {/* Cabeçalho */}
+          <div className="mb-8">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+              EXPLORAR REGISTROS
+            </p>
 
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+              Itens perdidos
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
+              Consulte os registros recentes de objetos perdidos no campus e
+              encontre informações que possam ajudar na identificação.
+            </p>
+          </div>
+
+          {/* Botão de cadastro */}
+          <div className="mb-6 flex justify-end">
             <Link
               href="/cadastrar-item"
-              className="inline-flex items-center gap-2 rounded-xl bg-black px-4 py-3 text-sm font-bold text-white hover:bg-gray-800"
+              className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
             >
-              <Plus size={17} />
+              <Plus className="h-4 w-4" />
               Cadastrar item
             </Link>
           </div>
 
-          <label className="relative mb-5 block">
-            <span className="sr-only">Buscar itens perdidos</span>
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+          {/* Busca */}
+          <div className={`${cardClass} mb-5`}>
+            <label className="mb-2 block text-sm font-semibold text-gray-700">
+              Buscar itens
+            </label>
 
-            <input
-              type="search"
-              value={busca}
-              onChange={handleBuscaChange}
-              placeholder="Buscar item ou local"
-              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 outline-none focus:border-[#42a5df]"
-            />
-          </label>
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
 
-          <section className="divide-y divide-gray-100 rounded-2xl border border-gray-200 bg-white px-5">
-            {itensFiltrados.length > 0 ? (
-              itensFiltrados.map((item) => (
-                <article
-                  key={item.id}
-                  className="flex items-center gap-4 py-4"
-                >
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-                    <Image
-                      src={item.imagem}
-                      alt={item.titulo}
-                      fill
-                      sizes="64px"
-                      unoptimized
-                      className="object-cover"
-                    />
-                  </div>
+              <input
+                type="search"
+                value={busca}
+                onChange={handleBuscaChange}
+                placeholder="Buscar por item, categoria ou local"
+                className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-12 pr-4 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-[#42a5df] focus:ring-2 focus:ring-[#42a5df]/20"
+              />
+            </div>
+          </div>
 
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate font-bold">
-                      {item.titulo}
-                    </h2>
+          {/* Quantidade de resultados */}
+          <p className="mb-3 text-sm text-gray-500">
+            {itensFiltrados.length}{" "}
+            {itensFiltrados.length === 1
+              ? "item encontrado"
+              : "itens encontrados"}
+          </p>
 
-                    <p className="mt-1 text-sm text-gray-500">
-                      {item.categoria}
-                    </p>
+          {/* Lista de itens */}
+          <section className={cardClass}>
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900">
+                Registros recentes
+              </h2>
 
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      <span className="inline-flex items-center gap-1.5">
-                        <MapPin size={14} />
-                        {item.local}
-                      </span>
-
-                      <span className="inline-flex items-center gap-1.5">
-                        <CalendarDays size={14} />
-                        {item.data}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))
-            ) : (
-              <p className="py-8 text-center text-sm text-gray-500">
-                Nenhum item encontrado. Tente outra busca.
+              <p className="mt-1 text-sm text-gray-500">
+                Itens registrados no campus.
               </p>
+            </div>
+
+            {itensFiltrados.length > 0 ? (
+              <div className="divide-y divide-gray-100">
+                {itensFiltrados.map((item) => (
+                  <article
+                    key={item.id}
+                    className="flex items-center gap-4 py-4 first:pt-0 last:pb-0"
+                  >
+                    {/* Imagem */}
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-gray-100 bg-gray-50">
+                      <Image
+                        src={item.imagem}
+                        alt={item.titulo}
+                        fill
+                        sizes="64px"
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+
+                    {/* Informações */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate font-semibold text-gray-900">
+                        {item.titulo}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        {item.categoria}
+                      </p>
+
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {item.local}
+                        </span>
+
+                        <span className="inline-flex items-center gap-1.5">
+                          <CalendarDays className="h-3.5 w-3.5" />
+                          {item.data}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="hidden shrink-0 rounded-xl bg-gray-50 p-3 sm:flex">
+                      <Package className="h-5 w-5 text-gray-500" />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <Search className="mx-auto mb-3 h-9 w-9 text-gray-300" />
+
+                <h3 className="font-semibold text-gray-800">
+                  Nenhum item encontrado
+                </h3>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Tente buscar por outro item, categoria ou local.
+                </p>
+              </div>
             )}
           </section>
         </div>

@@ -1,20 +1,19 @@
+
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useState, type ChangeEvent } from "react";
+import Link from "next/link";
 import {
   Package,
   Plus,
   Upload,
   CheckCircle2,
   Clock,
-  ArrowLeft,
-  Settings,
   Image as ImageIcon,
   X,
 } from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
+
 type Item = {
   id: string;
   titulo: string;
@@ -54,16 +53,29 @@ export default function MeusItens() {
 
   function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
-    const mockUrls = files.map((file) => URL.createObjectURL(file));
-    setNovasFotos((prev) => [...prev, ...mockUrls]);
+    const novasUrls = files.map((file) => URL.createObjectURL(file));
+
+    setNovasFotos((prev) => [...prev, ...novasUrls]);
+
+    e.target.value = "";
   }
 
   function handleRemoveFoto(index: number) {
+    const fotoRemovida = novasFotos[index];
+
+    URL.revokeObjectURL(fotoRemovida);
+
     setNovasFotos((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function handleCloseModal() {
+    novasFotos.forEach((foto) => URL.revokeObjectURL(foto));
+    setNovasFotos([]);
+    setItemSelecionado(null);
+  }
+
   function handleSaveFotos() {
-    if (!itemSelecionado) return;
+    if (!itemSelecionado || novasFotos.length === 0) return;
 
     setItens((prevItens) =>
       prevItens.map((item) => {
@@ -73,179 +85,248 @@ export default function MeusItens() {
             fotos: [...item.fotos, ...novasFotos],
           };
         }
+
         return item;
       })
     );
 
-    setItemSelecionado(null);
     setNovasFotos([]);
+    setItemSelecionado(null);
   }
+
+  const cardClass =
+    "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
 
   return (
     <PrivateLayout>
-    <main className="min-h-screen bg-white text-black font-sans">
+      <main className="min-h-screen bg-white text-gray-900 font-sans">
+        <div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-10">
 
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-9 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-5xl font-black italic leading-tight">
-              Meus Itens Cadastrados
+          {/* Cabeçalho */}
+          <div className="mb-8">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+              MEUS REGISTROS
+            </p>
+
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+              Meus itens cadastrados
             </h1>
-            <div className="mt-3 h-1 w-40 bg-[#42a5df]" />
-            <p className="mt-5 max-w-xl text-base text-gray-500">
-              Gerencie os seus pertences perdidos ou achados e adicione
-              múltiplas fotos para facilitar a identificação.
+
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
+              Acompanhe seus itens perdidos ou encontrados e adicione novas
+              fotos para facilitar a identificação dos objetos.
             </p>
           </div>
 
-          <Link
-            href="/cadastrar-item"
-            className="flex items-center gap-2 rounded-2xl bg-black px-6 py-4 font-bold italic text-white hover:bg-gray-800 transition"
-          >
-            <Plus className="w-5 h-5" /> Cadastrar Novo Item
-          </Link>
+          {/* Botão de cadastro */}
+          <div className="mb-6 flex justify-end">
+            <Link
+              href="/cadastrar-item"
+              className="flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
+            >
+              <Plus className="h-4 w-4" />
+              Cadastrar novo item
+            </Link>
+          </div>
+
+          {/* Listagem dos itens */}
+          <div className={cardClass}>
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900">
+                Itens registrados
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Visualize seus registros e gerencie as fotos dos itens.
+              </p>
+            </div>
+
+            {itens.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4">
+                {itens.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4"
+                  >
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white">
+                        <Package className="h-7 w-7 text-gray-700" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-gray-900">
+                          {item.titulo}
+                        </h3>
+
+                        <p className="mt-1 text-xs text-gray-500">
+                          Categoria: {item.categoria}
+                        </p>
+
+                        <p className="text-xs text-gray-500">
+                          Data: {item.data}
+                        </p>
+
+                        <div className="mt-2 flex flex-wrap items-center gap-3">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold ${
+                              item.status === "Perdido"
+                                ? "bg-red-50 text-red-700"
+                                : "bg-green-50 text-green-700"
+                            }`}
+                          >
+                            {item.status === "Perdido" ? (
+                              <Clock className="h-3.5 w-3.5" />
+                            ) : (
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                            )}
+
+                            {item.status}
+                          </span>
+
+                          <span className="text-xs text-gray-500">
+                            {item.fotos.length}{" "}
+                            {item.fotos.length === 1 ? "foto" : "fotos"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenUploadModal(item)}
+                      className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-800 transition hover:border-[#42a5df] hover:text-[#42a5df]"
+                    >
+                      <Upload className="h-4 w-4" />
+                      Adicionar fotos
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-10 text-center">
+                <Package className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+
+                <p className="font-semibold text-gray-700">
+                  Nenhum item cadastrado
+                </p>
+
+                <p className="mt-1 text-sm text-gray-500">
+                  Seus itens registrados aparecerão aqui.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="rounded-3xl bg-[#f8f8f8] p-6 shadow-sm md:p-8">
-          <div className="grid grid-cols-1 gap-6">
-            {itens.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-2xl bg-[#d5d5d5] p-5 flex flex-wrap items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="rounded-xl bg-white p-3 shrink-0">
-                    <Package className="w-8 h-8 text-black" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold italic">{item.titulo}</h3>
-                    <p className="text-sm text-gray-600">
-                      Categoria: {item.categoria} | Data: {item.data}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold italic ${
-                          item.status === "Perdido"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {item.status === "Perdido" ? (
-                          <Clock className="w-3.5 h-3.5" />
-                        ) : (
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                        )}
-                        Status: {item.status}
-                      </span>
+        {/* Modal de upload */}
+        {itemSelecionado && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-lg rounded-2xl border border-gray-100 bg-white p-6 shadow-xl">
 
-                      <span className="text-xs font-bold italic text-gray-600">
-                        {item.fotos.length}{" "}
-                        {item.fotos.length === 1 ? "foto" : "fotos"}
-                      </span>
-                    </div>
-                  </div>
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+                    GERENCIAR FOTOS
+                  </p>
+
+                  <h2 className="mt-1 text-xl font-bold text-gray-900">
+                    Adicionar fotos
+                  </h2>
                 </div>
 
                 <button
                   type="button"
-                  onClick={() => handleOpenUploadModal(item)}
-                  className="flex items-center gap-2 rounded-xl bg-white px-4 py-3 font-bold italic text-black border border-gray-300 hover:bg-gray-50 transition"
+                  onClick={handleCloseModal}
+                  className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
                 >
-                  <Upload className="w-4 h-4" /> Upload de Múltiplas Fotos
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {itemSelecionado && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-lg w-full">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-black italic">
-                Upload de Fotos: {itemSelecionado.titulo}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setItemSelecionado(null)}
-                className="p-1 hover:opacity-70 transition"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+              <p className="mb-5 text-sm text-gray-500">
+                Selecione imagens para adicionar ao item{" "}
+                <span className="font-semibold text-gray-800">
+                  {itemSelecionado.titulo}
+                </span>.
+              </p>
 
-            <p className="text-sm text-gray-500 mb-6">
-              Selecione uma ou mais fotos do seu dispositivo para anexar a este
-              item.
-            </p>
+              {/* Área de seleção */}
+              <label className="mb-5 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-gray-300 p-8 text-center transition hover:border-[#42a5df] hover:bg-gray-50">
+                <ImageIcon className="mb-3 h-9 w-9 text-gray-400" />
 
-            <label className="border-2 border-dashed border-gray-400 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition mb-6">
-              <ImageIcon className="w-10 h-10 text-gray-400 mb-2" />
-              <span className="font-bold italic text-sm text-black">
-                Clique para selecionar imagens
-              </span>
-              <span className="text-xs text-gray-400 mt-1">
-                Suporta PNG, JPG ou JPEG
-              </span>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </label>
+                <span className="text-sm font-semibold text-gray-800">
+                  Clique para selecionar imagens
+                </span>
 
-            {novasFotos.length > 0 && (
-              <div className="mb-6">
-                <p className="font-bold italic text-xs mb-2">
-                  Novas fotos selecionadas ({novasFotos.length}):
-                </p>
-                <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                  {novasFotos.map((src, index) => (
-                    <div
-                      key={index}
-                      className="relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-gray-300"
-                    >
-                      <img
-                        src={src}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFoto(index)}
-                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 hover:bg-black"
+                <span className="mt-1 text-xs text-gray-400">
+                  Formatos PNG, JPG ou JPEG
+                </span>
+
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Fotos selecionadas */}
+              {novasFotos.length > 0 && (
+                <div className="mb-5">
+                  <p className="mb-3 text-sm font-semibold text-gray-800">
+                    Novas fotos selecionadas ({novasFotos.length})
+                  </p>
+
+                  <div className="flex flex-wrap gap-3">
+                    {novasFotos.map((src, index) => (
+                      <div
+                        key={src}
+                        className="relative h-20 w-20 overflow-hidden rounded-xl border border-gray-200"
                       >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                        <img
+                          src={src}
+                          alt={`Foto selecionada ${index + 1}`}
+                          className="h-full w-full object-cover"
+                        />
 
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setItemSelecionado(null)}
-                className="px-5 py-3 rounded-xl font-bold italic text-gray-600 hover:bg-gray-100 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveFotos}
-                className="px-6 py-3 rounded-xl bg-black text-white font-bold italic hover:bg-gray-800 transition"
-              >
-                Salvar Fotos
-              </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFoto(index)}
+                          className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white transition hover:bg-black"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Botões */}
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-5">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="rounded-xl px-5 py-3 text-sm font-semibold text-gray-600 transition hover:bg-gray-100"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveFotos}
+                  disabled={novasFotos.length === 0}
+                  className="flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Salvar fotos
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </main>
+        )}
+      </main>
     </PrivateLayout>
   );
 }
