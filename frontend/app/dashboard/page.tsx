@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -13,6 +12,7 @@ import {
   ArrowRight,
   ExternalLink,
   LayoutDashboard,
+  LogOut,
   SearchX,
 } from "lucide-react";
 
@@ -75,6 +75,15 @@ export default function Dashboard() {
             <User size={20} />
           </Link>
 
+          <form action="/api/auth/logout" method="post" className="shrink-0">
+            <button
+              type="submit"
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm font-semibold text-gray-700 transition hover:bg-red-50 hover:text-red-700"
+            >
+              <LogOut size={17} aria-hidden="true" />
+              Sair
+            </button>
+          </form>
         </header>
 
         {/* ÁREA PRINCIPAL */}
