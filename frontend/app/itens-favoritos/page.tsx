@@ -110,7 +110,6 @@ export default function ItensFavoritos() {
 
             <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
               Itens favoritos
-              <Star className="h-7 w-7 fill-amber-400 text-amber-400" />
             </h1>
 
             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
