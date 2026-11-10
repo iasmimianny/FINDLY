@@ -113,7 +113,7 @@ export default function Login() {
 
   return (
     <main className="min-h-screen bg-[#f5f6f8] text-[#171717]">
-      <header className="flex h-[74px] items-center justify-between bg-black px-5 text-white sm:px-10">
+      {/* <header className="flex h-[74px] items-center justify-between bg-black px-5 text-white sm:px-10">
         <Link
           href="/"
           className="flex items-center gap-3 rounded-md focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
@@ -138,7 +138,7 @@ export default function Login() {
           <ArrowLeft size={18} aria-hidden="true" />
           Voltar ao início
         </Link>
-      </header>
+      </header> */}
 
       <section className="flex min-h-[calc(100vh-74px)] items-center justify-center px-4 py-10 sm:px-6">
         <div className="w-full max-w-[440px]">
