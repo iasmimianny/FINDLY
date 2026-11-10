@@ -3,7 +3,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, type ChangeEvent } from "react";
 import {
   PlusCircle,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const router = useRouter();
   const [busca, setBusca] = useState("");
 
   const favoritos = [
@@ -52,11 +50,6 @@ export default function Dashboard() {
       .toLowerCase()
       .includes(busca.toLowerCase())
   );
-
-  const handleLogout = () => {
-    // TODO: Encerrar a sessão JWT conforme a autenticação existente.
-    router.replace("/login");
-  };
 
   return (
     <div className="flex h-screen bg-black text-white font-sans overflow-hidden">
@@ -149,16 +142,16 @@ export default function Dashboard() {
 
         {/* --- RODAPÉ DA SIDEBAR --- */}
         <div className="space-y-4">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#1e2022] hover:bg-red-500/10 transition text-sm font-bold italic text-white hover:text-red-400 cursor-pointer"
-          >
-            <div className="p-1 rounded-full bg-red-500/20 text-red-500">
-              <LogOut size={18} strokeWidth={2.5} />
-            </div>
-            <span>Sair</span>
-          </button>
+          <form action="/api/auth/logout" method="post">
+            <button type="submit"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#1e2022] hover:bg-red-500/10 transition text-sm font-bold italic text-white hover:text-red-400 cursor-pointer"
+            >
+              <div className="p-1 rounded-full bg-red-500/20 text-red-500">
+                <LogOut size={18} strokeWidth={2.5} />
+              </div>
+              <span>Sair</span>
+            </button>
+          </form>
 
           <div className="text-xs text-gray-500 font-medium pt-4 border-t border-gray-900">
             Campus UNIFIP Patos

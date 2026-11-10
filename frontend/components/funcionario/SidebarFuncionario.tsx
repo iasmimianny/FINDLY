@@ -3,7 +3,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   PackagePlus,
@@ -54,7 +54,6 @@ const menus = [
 
 export default function SidebarFuncionario() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col justify-between border-r border-gray-800 bg-black p-6 text-white">
@@ -116,16 +115,16 @@ export default function SidebarFuncionario() {
       </div>
 
       <div className="mt-4 space-y-4">
-        <button
-          type="button"
-          onClick={() => router.replace("/login")}
-          className="flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-[#1e2022] px-4 py-3 text-sm font-bold italic text-white transition hover:bg-red-500/10 hover:text-red-400"
-        >
-          <div className="rounded-full bg-red-500/20 p-1 text-red-500">
-            <LogOut size={18} strokeWidth={2.5} />
-          </div>
-          <span>Sair</span>
-        </button>
+        <form action="/api/auth/logout" method="post">
+          <button type="submit"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-[#1e2022] px-4 py-3 text-sm font-bold italic text-white transition hover:bg-red-500/10 hover:text-red-400"
+          >
+            <div className="rounded-full bg-red-500/20 p-1 text-red-500">
+              <LogOut size={18} strokeWidth={2.5} />
+            </div>
+            <span>Sair</span>
+          </button>
+        </form>
 
         <div className="border-t border-gray-900 pt-4 text-xs font-medium text-gray-500">
           Campus UNIFIP Patos

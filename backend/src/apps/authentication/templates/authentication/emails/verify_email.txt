@@ -3,7 +3,7 @@ Olá, {{ user.full_name|default:user.email }}!
 Recebemos um pedido para confirmar o e-mail da sua conta no Findly.
 
 Para ativar sua conta, acesse:
-{{ url }}
+{{ url|safe }}
 
 O link expira em {{ expires_minutes }} minutos.
 
