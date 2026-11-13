@@ -1,9 +1,7 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, Settings, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
 
 export default function FAQPage() {
@@ -42,53 +40,69 @@ export default function FAQPage() {
     },
   ];
 
-  const toggleFAQ = (index: number) => {
+  function toggleFAQ(index: number) {
     setOpenIndex(openIndex === index ? null : index);
-  };
+  }
+
+  const cardClass = "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
 
   return (
     <PrivateLayout>
-    <main className="min-h-screen bg-white text-black font-sans flex flex-col justify-between">
-      <div>
-        {/* --- CONTEÚDO PRINCIPAL --- */}
-        <div className="mx-auto max-w-5xl px-6 py-10">
-          
-          {/* Títulos da Página */}
-          <div className="mb-8">
-            <h1 className="text-5xl font-black italic tracking-tight">
-              FAQ:
+      <main className="min-h-screen w-full bg-white font-sans text-gray-900">
+        <div className="mx-auto w-full max-w-6xl px-5 py-8 md:px-10 md:py-10">
+          {/* Cabeçalho */}
+          <div className="mb-8 w-full text-left">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+              CENTRAL DE AJUDA
+            </p>
+
+            <h1 className="mt-2 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+              Perguntas frequentes
             </h1>
 
-            <p className="mt-3 text-2xl font-bold italic text-[#59558a]">
-              Perguntas <span className="font-normal text-gray-400">frequentes:</span>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-gray-500">
+              Encontre respostas para as principais dúvidas sobre o
+              funcionamento da plataforma FINDLY.
             </p>
           </div>
 
-          {/* CARD PRINCIPAL COM A LISTA DE PERGUNTAS */}
-          <div className="rounded-3xl bg-[#f8f8f8] p-6 md:p-10 shadow-sm border border-gray-100 max-w-3xl mx-auto">
-            <div className="divide-y divide-gray-200">
+          {/* Lista de perguntas */}
+          <section className={`${cardClass} mx-auto max-w-4xl`}>
+            <div className="mb-5">
+              <h2 className="text-lg font-bold text-gray-900">
+                Dúvidas frequentes
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Clique em uma pergunta para visualizar a resposta.
+              </p>
+            </div>
+
+            <div className="divide-y divide-gray-100">
               {faqList.map((item, index) => {
                 const isOpen = openIndex === index;
+
                 return (
                   <div key={index} className="py-4 first:pt-0 last:pb-0">
                     <button
                       type="button"
                       onClick={() => toggleFAQ(index)}
-                      className="flex w-full items-center justify-between text-left focus:outline-none group"
+                      aria-expanded={isOpen}
+                      className="flex w-full items-center justify-between gap-4 text-left transition"
                     >
-                      <span className="text-lg font-black italic text-black group-hover:text-gray-700 transition pr-4">
+                      <span className="text-sm font-semibold leading-relaxed text-gray-900 transition hover:text-[#42a5df] md:text-base">
                         {item.pergunta}
                       </span>
+
                       <ChevronDown
-                        className={`w-5 h-5 text-black shrink-0 transition-transform duration-300 ${
-                          isOpen ? "rotate-180" : ""
+                        className={`h-5 w-5 shrink-0 text-gray-500 transition-transform duration-300 ${
+                          isOpen ? "rotate-180 text-[#42a5df]" : ""
                         }`}
                       />
                     </button>
 
-                    {/* Resposta expandível */}
                     {isOpen && (
-                      <div className="mt-3 text-sm md:text-base text-gray-600 font-medium leading-relaxed animate-fadeIn pl-1">
+                      <div className="mt-3 rounded-xl bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
                         {item.resposta}
                       </div>
                     )}
@@ -96,15 +110,14 @@ export default function FAQPage() {
                 );
               })}
             </div>
-          </div>
-
+          </section>
         </div>
-      </div>
 
-      {/* Espaçador de Rodapé */}
-      <footer className="py-8 text-center text-sm text-gray-400 font-medium">
-        FINDLY — Sistema de Achados e Perdidos UNIFIP
-      </footer>
-    </main>
-  </PrivateLayout>
-)}
+        {/* Rodapé */}
+        <footer className="py-8 text-center text-xs text-gray-400">
+          FINDLY — Sistema de Achados e Perdidos UNIFIP
+        </footer>
+      </main>
+    </PrivateLayout>
+  );
+}

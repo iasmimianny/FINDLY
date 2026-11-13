@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -13,6 +12,7 @@ import {
   ArrowRight,
   ExternalLink,
   LayoutDashboard,
+  LogOut,
   SearchX,
 } from "lucide-react";
 
@@ -68,13 +68,12 @@ export default function Dashboard() {
           </div>
 
           <Link
-            href="/perfil"
+            href="/configuracao"
             title="Meu perfil"
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700 transition hover:border-gray-400 hover:bg-gray-100"
           >
             <User size={20} />
           </Link>
-
         </header>
 
         {/* ÁREA PRINCIPAL */}
