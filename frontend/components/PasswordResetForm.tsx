@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -24,7 +24,7 @@ export default function PasswordResetForm({
     const password = form.get("new_password");
     const confirmation = form.get("new_password_confirm");
     if (reset && password !== confirmation) {
-      setError("As senhas nÃ£o coincidem.");
+      setError("As senhas não coincidem.");
       return;
     }
 
@@ -61,14 +61,14 @@ export default function PasswordResetForm({
             : Array.isArray(messages) && messages.every((message) => typeof message === "string") && messages.length
               ? messages.join(" ")
               : reset
-                ? "Link invÃ¡lido ou expirado. Solicite um novo link."
-                : "Confira o endereÃ§o de e-mail informado.",
+                ? "Link inválido ou expirado. Solicite um novo link."
+                : "Confira o endereço de e-mail informado.",
         );
       } else {
-        setError("NÃ£o foi possÃ­vel concluir a solicitaÃ§Ã£o. Tente novamente.");
+        setError("Não foi possível concluir a solicitação. Tente novamente.");
       }
     } catch {
-      setError("NÃ£o foi possÃ­vel conectar ao servidor. Tente novamente.");
+      setError("Não foi possível conectar ao servidor. Tente novamente.");
     } finally {
       setPending(false);
     }
@@ -86,10 +86,10 @@ export default function PasswordResetForm({
           <p role="status">
             {reset
               ? "Senha redefinida. Entre com a nova senha."
-              : "Se houver uma conta ativa com esse e-mail, vocÃª receberÃ¡ um link para redefinir a senha."}
+              : "Se houver uma conta ativa com esse e-mail, você receberá um link para redefinir a senha."}
           </p>
         ) : invalidLink ? (
-          <p role="alert">O link estÃ¡ incompleto. Solicite um novo link.</p>
+          <p role="alert">O link está incompleto. Solicite um novo link.</p>
         ) : (
           <form method="post" onSubmit={submit} className="space-y-4">
             {reset ? (
@@ -112,7 +112,7 @@ export default function PasswordResetForm({
 
             {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
             <button type="submit" disabled={pending} className="w-full rounded-xl bg-black px-4 py-3 font-semibold text-white disabled:opacity-60">
-              {pending ? "Enviandoâ€¦" : reset ? "Salvar nova senha" : "Enviar link"}
+              {pending ? "Enviando…" : reset ? "Salvar nova senha" : "Enviar link"}
             </button>
           </form>
         )}

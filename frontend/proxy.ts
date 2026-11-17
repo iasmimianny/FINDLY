@@ -108,6 +108,7 @@ export const config = {
     "/perfil/:path*",
     "/configuracao/:path*",
     "/meus-itens/:path*",
+    "/pontos-coleta/:path*",
     "/itens-favoritos/:path*",
     "/itens-perdidos/:path*",
     "/cadastrar-item/:path*",

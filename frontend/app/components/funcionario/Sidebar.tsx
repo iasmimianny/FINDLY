@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+import SidebarToggle, { useSidebarCollapsed } from "../../../components/SidebarToggle";
 import {
   PlusCircle,
   Search,
@@ -12,12 +14,11 @@ import {
   Settings,
   LogOut,
   House,
-  PlusIcon,
 } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { collapsed, toggle } = useSidebarCollapsed();
 
   const menuPrincipal = [
     {
@@ -50,6 +51,12 @@ export default function Sidebar() {
       Icone: Package,
       cor: "text-purple-400",
     },
+    {
+      nome: "Pontos de coleta",
+      rota: "/pontos-coleta",
+      Icone: MapPin,
+      cor: "text-blue-400",
+    },
   ];
 
   const menuSecundario = [
@@ -70,75 +77,33 @@ export default function Sidebar() {
     },
   ];
 
-  return (
-    <aside className="fixed left-0 top-0 z-50 flex h-screen w-64 flex-col bg-black text-white">
-      <div className="flex items-center gap-3 px-6 py-7">
-        <img
-          src="/logo-findly.jpg"
-          alt="Findly"
-          className="h-11 w-11 rounded-full object-cover"
-        />
-        <span className="text-xl font-bold tracking-widest">FINDLY</span>
-      </div>
+  function renderMenu(menu: { nome: string; rota: string; Icone: typeof House; cor?: string }) {
+    const Icon = menu.Icone;
+    const active = pathname === menu.rota;
+    return <Link key={menu.rota} href={menu.rota} aria-label={menu.nome} title={collapsed ? menu.nome : undefined} aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3 rounded-lg py-3 text-sm transition-colors ${collapsed ? "gap-0 px-5" : "px-4"} ${active ? "bg-[#1E2022] text-white" : "text-gray-400 hover:bg-[#1E2022] hover:text-white"}`}>
+      <Icon className={`h-5 w-5 shrink-0 ${menu.cor ?? "text-gray-400"}`} aria-hidden="true" />
+      <span className="findly-sidebar-label" aria-hidden={collapsed}>{menu.nome}</span>
+    </Link>;
+  }
 
-      <nav className="flex-1 px-4">
-        <div className="space-y-2">
-          {menuPrincipal.map(({ nome, rota, Icone, cor }) => {
-            const ativo = pathname === rota;
-
-            return (
-              <Link
-                key={rota}
-                href={rota}
-                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${
-                  ativo
-                    ? "bg-[#1E2022] text-white"
-                    : "text-gray-400 hover:bg-[#1E2022] hover:text-white"
-                }`}
-              >
-                <Icone className={`h-5 w-5 ${cor}`} />
-                {nome}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="my-6 border-t border-gray-800" />
-
-        <div className="space-y-2">
-          {menuSecundario.map(({ nome, rota, Icone }) => (
-            <Link
-              key={rota}
-              href={rota}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm transition-colors ${
-                pathname === rota
-                  ? "bg-[#1E2022] text-white"
-                  : "text-gray-400 hover:bg-[#1E2022] hover:text-white"
-              }`}
-            >
-              <Icone className="h-5 w-5" />
-              {nome}
-            </Link>
-          ))}
-        </div>
-      </nav>
-
-      <div className="border-t border-gray-800 px-4 py-5">
-        <form action="/api/auth/logout" method="post" className="shrink-0">
-          <button
-            type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-gray-400 transition-colors hover:bg-[#1E2022] hover:text-white"
-          >
-            <LogOut className="h-5 w-5" />
-            Sair
-          </button>
-        </form>
-
-        <div className="mt-4 px-4 text-xs text-gray-500">
-          <p>Campus UNIFIP</p>
-          <p>Patos - PB</p>
-        </div>
-      </div>
-    </aside>
-  );
+  return <aside data-collapsed={collapsed} aria-label="Menu principal" className={`findly-sidebar fixed left-0 top-0 z-50 flex h-dvh shrink-0 flex-col overflow-hidden bg-black text-white transition-[width] duration-200 motion-reduce:transition-none ${collapsed ? "w-20" : "w-64"}`}>
+    <div className={`flex shrink-0 items-center gap-3 py-5 ${collapsed ? "flex-col px-2" : "px-4"}`}>
+      <Image src="/logo-findly.jpg" alt="Findly" width={44} height={44} className="h-11 w-11 shrink-0 rounded-full object-cover" />
+      {!collapsed && <span className="min-w-0 flex-1 text-lg font-bold tracking-widest">FINDLY</span>}
+      <SidebarToggle collapsed={collapsed} onToggle={toggle} controls="findly-main-navigation" />
+    </div>
+    <nav id="findly-main-navigation" className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden ${collapsed ? "px-2" : "px-4"}`}>
+      <div className="space-y-2">{menuPrincipal.map(renderMenu)}</div>
+      <div className="my-5 border-t border-gray-800" />
+      <div className="space-y-2">{menuSecundario.map(renderMenu)}</div>
+    </nav>
+    <div className={`shrink-0 border-t border-gray-800 py-4 ${collapsed ? "px-2" : "px-4"}`}>
+      <form action="/api/auth/logout" method="post"><button type="submit" aria-label="Sair" title={collapsed ? "Sair" : undefined}
+        className={`flex w-full items-center gap-3 rounded-lg py-3 text-sm text-gray-400 transition-colors hover:bg-[#1E2022] hover:text-white ${collapsed ? "gap-0 px-5" : "px-4"}`}>
+        <LogOut className="h-5 w-5 shrink-0" aria-hidden="true" />{!collapsed && "Sair"}
+      </button></form>
+      {!collapsed && <div className="mt-4 px-4 text-xs text-gray-500"><p>Campus UNIFIP</p><p>Patos - PB</p></div>}
+    </div>
+  </aside>;
 }

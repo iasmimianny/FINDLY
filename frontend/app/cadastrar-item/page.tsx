@@ -1,36 +1,33 @@
 
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
-import Image from "next/image";
+import { useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
+import ItemPhotos from "../../components/ItemPhotos";
+import OccurrenceDatePicker from "../../components/OccurrenceDatePicker";
+import { categories, occurrenceDate, readItemResponse, ItemApiError, type Item, type ItemKind } from "../../lib/items";
 import {
   Package,
   Tag,
   MapPin,
-  Calendar,
   Camera,
   CheckCircle2,
-  X,
-  Upload,
 } from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
 
-type FotoItem = {
-  file: File;
-  previewUrl: string;
-};
-
 export default function CadastrarItem() {
-  const [tipo, setTipo] = useState("perdido");
+  const [tipo, setTipo] = useState<ItemKind>("lost");
   const [titulo, setTitulo] = useState("");
   const [categoria, setCategoria] = useState("");
   const [local, setLocal] = useState("");
   const [data, setData] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [fotos, setFotos] = useState<FotoItem[]>([]);
-  const [cadastrado, setCadastrado] = useState(false);
-
-  const maxFotos = 6;
+  const [saved, setSaved] = useState<Item | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [expired, setExpired] = useState(false);
+  const [uncertain, setUncertain] = useState(false);
+  const lock = useRef(false);
 
   const hoje = new Date();
   const dataHoje = [
@@ -39,62 +36,36 @@ export default function CadastrarItem() {
     String(hoje.getDate()).padStart(2, "0"),
   ].join("-");
 
-  function handleFotoChange(e: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-
-    if (files.length === 0) return;
-
-    const vagas = maxFotos - fotos.length;
-
-    if (vagas <= 0) {
-      e.target.value = "";
-      return;
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (lock.current || uncertain) return;
+    if (!data || data > dataHoje) { setError("Informe uma data até hoje."); return; }
+    if (!titulo.trim() || !local.trim() || !descricao.trim()) { setError("Preencha nome, local e descrição."); return; }
+    lock.current = true;
+    setPending(true);
+    setError("");
+    setExpired(false);
+    try {
+      const date = occurrenceDate(data);
+      const payload = {
+        title: titulo.trim(), description: descricao.trim(), category: categoria,
+        ...(tipo === "found" ? { found_at: date, found_location: local.trim() } : { lost_at: date, lost_location: local.trim() }),
+      };
+      const result = await readItemResponse<Item>(await fetch(`/api/items/${tipo}/`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        credentials: "same-origin", cache: "no-store", body: JSON.stringify(payload),
+      }));
+      if (!result?.public_code) throw new Error("Não foi possível confirmar o código do registro.");
+      setSaved(result);
+    } catch (reason) {
+      const unknown = !(reason instanceof ItemApiError) || reason.status >= 500;
+      setUncertain(unknown);
+      setExpired(reason instanceof ItemApiError && reason.status === 401);
+      setError(unknown ? "Não conseguimos confirmar se o cadastro foi salvo. Confira Meus itens antes de tentar novamente para evitar duplicação." : reason.message);
+    } finally {
+      lock.current = false;
+      setPending(false);
     }
-
-    const arquivosSelecionados = files.slice(0, vagas);
-
-    const novasFotos = arquivosSelecionados.map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-
-    setFotos((prev) => [...prev, ...novasFotos]);
-    e.target.value = "";
-  }
-
-  function handleRemoveFoto(index: number) {
-    setFotos((prev) => {
-      const foto = prev[index];
-
-      if (foto?.previewUrl) {
-        URL.revokeObjectURL(foto.previewUrl);
-      }
-
-      return prev.filter((_, i) => i !== index);
-    });
-  }
-
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    if (!data || data > dataHoje) {
-      return;
-    }
-
-    setCadastrado(true);
-
-    fotos.forEach((foto) => {
-      URL.revokeObjectURL(foto.previewUrl);
-    });
-
-    setTitulo("");
-    setCategoria("");
-    setLocal("");
-    setData("");
-    setDescricao("");
-    setFotos([]);
-
-    setTimeout(() => setCadastrado(false), 4000);
   }
 
   const inputClass =
@@ -102,6 +73,18 @@ export default function CadastrarItem() {
 
   const cardClass =
     "rounded-2xl border border-gray-100 bg-white p-5 shadow-sm";
+
+  if (saved) return <PrivateLayout><div className="min-h-screen bg-[#F5F6F8] px-5 py-10 text-gray-900"><section className="mx-auto max-w-3xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <CheckCircle2 size={36} className="mb-4 text-green-700" aria-hidden="true" />
+    <h1 className="text-2xl font-bold">Registro salvo!</h1>
+    <p role="status" className="mt-3 text-gray-700">{saved.title} foi cadastrado. Código: <strong className="font-mono">{saved.public_code}</strong>.</p>
+    {tipo === "found" && <ItemPhotos code={saved.public_code} canUpload />}
+    <div className="mt-6 flex flex-wrap gap-3">
+      <Link href={`/meus-itens?tipo=${tipo}&busca=${saved.public_code}`} className="rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white">Ver em Meus itens</Link>
+      <Link href={`/itens-perdidos?tipo=${tipo}&busca=${saved.public_code}`} className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold">Encontrar na busca</Link>
+      <button type="button" className="rounded-xl border border-gray-300 px-5 py-3 text-sm font-semibold" onClick={() => { setSaved(null); setTitulo(""); setCategoria(""); setLocal(""); setData(""); setDescricao(""); }}>Cadastrar outro</button>
+    </div>
+  </section></div></PrivateLayout>;
 
   return (
     <PrivateLayout>
@@ -125,6 +108,7 @@ export default function CadastrarItem() {
           </div>
 
           <form onSubmit={handleSubmit}>
+            <fieldset disabled={pending} className="min-w-0">
 
             {/* Tipo de registro */}
             <section className={`${cardClass} mb-6`}>
@@ -141,10 +125,10 @@ export default function CadastrarItem() {
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <button
                   type="button"
-                  aria-pressed={tipo === "perdido"}
-                  onClick={() => setTipo("perdido")}
+                  aria-pressed={tipo === "lost"}
+                  onClick={() => setTipo("lost")}
                   className={`rounded-xl border px-5 py-4 text-sm font-semibold transition ${
-                    tipo === "perdido"
+                    tipo === "lost"
                       ? "border-black bg-black text-white"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
                   }`}
@@ -154,10 +138,10 @@ export default function CadastrarItem() {
 
                 <button
                   type="button"
-                  aria-pressed={tipo === "achado"}
-                  onClick={() => setTipo("achado")}
+                  aria-pressed={tipo === "found"}
+                  onClick={() => setTipo("found")}
                   className={`rounded-xl border px-5 py-4 text-sm font-semibold transition ${
-                    tipo === "achado"
+                    tipo === "found"
                       ? "border-black bg-black text-white"
                       : "border-gray-200 bg-white text-gray-600 hover:border-gray-400"
                   }`}
@@ -182,15 +166,16 @@ export default function CadastrarItem() {
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 
                 <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <label htmlFor="item-title" className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <Package size={17} />
                     Nome do item
                   </label>
 
                   <input
+                    id="item-title"
                     type="text"
                     required
-                    maxLength={80}
+                    maxLength={120}
                     value={titulo}
                     onChange={(e) => setTitulo(e.target.value)}
                     placeholder="Ex.: Garrafa térmica azul"
@@ -199,12 +184,13 @@ export default function CadastrarItem() {
                 </div>
 
                 <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <label htmlFor="item-category" className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <Tag size={17} />
                     Categoria
                   </label>
 
                   <select
+                    id="item-category"
                     required
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
@@ -213,22 +199,18 @@ export default function CadastrarItem() {
                     <option value="" disabled>
                       Selecione uma categoria
                     </option>
-                    <option value="Eletrônicos">Eletrônicos</option>
-                    <option value="Documentos">Documentos</option>
-                    <option value="Acessórios">Acessórios</option>
-                    <option value="Roupas">Roupas</option>
-                    <option value="Chaves">Chaves</option>
-                    <option value="Outros">Outros</option>
+                    {categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   </select>
                 </div>
 
                 <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <label htmlFor="item-location" className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
                     <MapPin size={17} />
                     Local no campus
                   </label>
 
                   <input
+                    id="item-location"
                     type="text"
                     required
                     maxLength={120}
@@ -239,28 +221,16 @@ export default function CadastrarItem() {
                   />
                 </div>
 
-                <div>
-                  <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                    <Calendar size={17} />
-                    Data da ocorrência
-                  </label>
-
-                  <input
-                    type="date"
-                    required
-                    max={dataHoje}
-                    value={data}
-                    onChange={(e) => setData(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
+                <OccurrenceDatePicker value={data} onChange={setData} maxDate={dataHoje} disabled={pending} />
 
                 <div className="md:col-span-2">
-                  <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  <label htmlFor="item-description" className="mb-2 block text-sm font-semibold text-gray-700">
                     Descrição detalhada
                   </label>
 
                   <textarea
+                    id="item-description"
+                    required
                     rows={4}
                     maxLength={500}
                     value={descricao}
@@ -276,70 +246,9 @@ export default function CadastrarItem() {
               </div>
             </section>
 
-            {/* Fotos */}
             <section className={`${cardClass} mb-6`}>
-              <div className="mb-5">
-                <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                  <Camera size={20} />
-                  Fotos do item
-                </h2>
-
-                <p className="mt-1 text-sm text-gray-500">
-                  Adicione imagens que ajudem na identificação do objeto.
-                </p>
-              </div>
-
-              <label className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 px-5 py-8 text-center transition hover:border-[#42a5df] hover:bg-blue-50/40">
-                <Upload size={28} className="mb-3 text-gray-500" />
-
-                <span className="text-sm font-semibold text-gray-700">
-                  Clique para selecionar fotos
-                </span>
-
-                <span className="mt-1 text-xs text-gray-400">
-                  Imagens • Máximo de 6 fotos
-                </span>
-
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFotoChange}
-                  disabled={fotos.length >= maxFotos}
-                  className="hidden"
-                />
-              </label>
-
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Você pode adicionar até {maxFotos} imagens.</span>
-                <span>{fotos.length}/{maxFotos} selecionadas</span>
-              </div>
-
-              {fotos.length > 0 && (
-                <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-6">
-                  {fotos.map((item, idx) => (
-                    <div key={item.previewUrl} className="relative">
-                      <Image
-                        src={item.previewUrl}
-                        alt={`Foto ${idx + 1}`}
-                        width={160}
-                        height={160}
-                        unoptimized
-                        className="h-28 w-full rounded-xl object-cover"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveFoto(idx)}
-                        title="Remover foto"
-                        className="absolute -right-2 -top-2 rounded-full bg-black p-1.5 text-white shadow transition hover:bg-red-600"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h2 className="flex items-center gap-2 text-lg font-bold"><Camera size={20} aria-hidden="true" />Fotos do item</h2>
+              <p className="mt-2 text-sm leading-6 text-gray-600">{tipo === "found" ? "Depois de salvar o item encontrado, você poderá adicionar fotos nesta tela ou em Meus itens." : "Alertas de perda são cadastrados com descrição. O envio de fotos está disponível para objetos encontrados."}</p>
             </section>
 
             {/* Confirmação */}
@@ -350,21 +259,18 @@ export default function CadastrarItem() {
 
               <button
                 type="submit"
-                className="rounded-xl bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-gray-800"
+                disabled={pending || uncertain}
+                className="rounded-xl bg-black px-8 py-4 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:opacity-50"
               >
-                Cadastrar item
+                {pending ? "Salvando…" : "Cadastrar item"}
               </button>
             </div>
 
-            {cadastrado && (
-              <div className="mt-5 flex items-center gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-700">
-                <CheckCircle2 size={20} />
-
-                {tipo === "perdido"
-                  ? "Item perdido cadastrado com sucesso!"
-                  : "Item encontrado cadastrado com sucesso!"}
-              </div>
-            )}
+            {error && <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><p>{error}</p>
+              {expired && <Link href="/login" className="mt-3 inline-block font-semibold underline">Entrar novamente</Link>}
+              {uncertain && <div className="mt-3 flex flex-wrap gap-4"><Link href={`/meus-itens?tipo=${tipo}`} className="font-semibold underline">Conferir Meus itens</Link><button type="button" className="font-semibold underline" onClick={() => { setUncertain(false); setError(""); }}>Já conferi; liberar nova tentativa</button></div>}
+            </div>}
+            </fieldset>
           </form>
         </div>
       </main>
