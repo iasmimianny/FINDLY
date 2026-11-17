@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { ApiError, loginUsuario } from "../../lib/api";
+import { loginDestination } from "../../lib/staff";
 
 export default function Login() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function Login() {
       );
 
       // Aguarda a atualização da sessão e segue para o dashboard.
-      router.replace("/dashboard");
+      router.replace(loginDestination(resposta.user.role));
       router.refresh();
 
     } catch (erro: unknown) {

@@ -2,6 +2,7 @@
 import type { ReactNode } from "react";
 import SidebarFuncionario from "../../components/funcionario/SidebarFuncionario";
 import HeaderFuncionario from "../../components/funcionario/HeaderFuncionario";
+import { StaffProvider } from "../../components/funcionario/StaffContext";
 
 export default function FuncionarioLayout({
   children,
@@ -9,7 +10,7 @@ export default function FuncionarioLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden bg-black font-sans">
+    <StaffProvider><div className="flex h-screen overflow-hidden bg-black font-sans">
       <SidebarFuncionario />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white text-black">
@@ -19,6 +20,6 @@ export default function FuncionarioLayout({
           {children}
         </main>
       </div>
-    </div>
+    </div></StaffProvider>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { finishLoadingCycle } from "../lib/loading-cycle";
+import FindlyLoading from "./FindlyLoading";
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { CalendarDays, MapPin, Package, Plus, Search } from "lucide-react";
@@ -37,9 +39,11 @@ function Results({ query, onPage }: { query: ItemQuery; onPage: (page: number) =
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
+      const startedAt = performance.now();
       try {
         const data = await readItemResponse<ItemPage>(await fetch(itemListPath(query), { signal: controller.signal, cache: "no-store", credentials: "same-origin" }));
         if (!Array.isArray(data?.results) || typeof data.count !== "number") throw new Error("Resposta de listagem inválida. Tente novamente.");
+        await finishLoadingCycle(startedAt, controller.signal);
         if (!controller.signal.aborted) { setResult(data); setError(""); }
       } catch (reason) {
         if (!controller.signal.aborted) {
@@ -55,7 +59,7 @@ function Results({ query, onPage }: { query: ItemQuery; onPage: (page: number) =
   if (error) return <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p>{error}</p>
     {expired ? <Link href="/login" className="mt-3 inline-block font-semibold underline">Entrar novamente</Link> : <button className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold" onClick={() => { setError(""); setAttempt((value) => value + 1); }}>Tentar novamente</button>}
   </div>;
-  if (!result) return <p role="status" className="rounded-xl border border-gray-200 bg-white p-8 text-gray-600">Carregando registros…</p>;
+  if (!result) return <FindlyLoading message="Carregando registros…" />;
   return <section aria-label="Resultados" aria-live="polite">
     <p className="mb-4 text-sm text-gray-600">{result.count} {result.count === 1 ? "registro" : "registros"} · {query.kind === "found" ? "Itens encontrados" : "Itens perdidos"}{query.mine ? " por você" : ""}</p>
     {result.results.length ? <div className="space-y-4">{result.results.map((item) => <ItemCard key={`${query.kind}-${item.public_code}`} item={item} kind={query.kind} mine={query.mine} />)}</div> : <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center">

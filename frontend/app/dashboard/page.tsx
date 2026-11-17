@@ -1,5 +1,7 @@
 "use client";
 
+import { finishLoadingCycle } from "../../lib/loading-cycle";
+import FindlyLoading from "../../components/FindlyLoading";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
@@ -38,7 +40,8 @@ function SummaryContent({ data }: { data: DashboardSummary }) {
       </section>
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-5">
         <h2 className="flex items-center gap-2 text-lg font-bold"><MapPin size={20} className="text-blue-600" aria-hidden="true" />Pontos de coleta</h2>
-        <p className="mb-5 mt-1 text-sm text-gray-600">Locais ativos cadastrados pela equipe.</p>
+        <p className="mb-3 mt-1 text-sm text-gray-600">Locais ativos cadastrados pela equipe.</p>
+        <Link href="/pontos-coleta" className="mb-5 inline-flex items-center gap-1 text-sm font-semibold underline underline-offset-4">Ver todos os pontos<ArrowRight size={15} aria-hidden="true" /></Link>
         {data.points === null ? <p role="status" className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">Não foi possível consultar os pontos agora. Use Atualizar painel para tentar novamente.</p> : data.points.results.length === 0 ? <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-600">Nenhum ponto de coleta ativo cadastrado.</p> : <div className="space-y-4">
           {data.points.results.map((point) => <article key={point.id} className="rounded-xl border border-gray-200 bg-gray-50 p-4"><h3 className="font-semibold">{point.name}</h3>{point.address && <p className="mt-2 break-words text-sm leading-6 text-gray-600">{point.address}</p>}{point.opening_hours && <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600">Horário: {point.opening_hours}</p>}{point.address && <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${point.name}, ${point.address}`)}`} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-semibold underline underline-offset-4">Abrir no mapa<ExternalLink size={14} aria-hidden="true" /></a>}</article>)}
           {data.points.count > data.points.results.length && <p className="text-xs text-gray-600">Exibindo {data.points.results.length} de {data.points.count} pontos ativos.</p>}
@@ -57,9 +60,11 @@ export default function Dashboard() {
   useEffect(() => {
     const controller = new AbortController();
     async function load() {
+      const startedAt = performance.now();
       try {
         const summary = await readItemResponse<DashboardSummary>(await fetch("/api/dashboard/", { credentials: "same-origin", cache: "no-store", signal: controller.signal }));
         if (!summary?.user || !summary?.counts || !Array.isArray(summary.recent)) throw new Error("Resposta do painel inválida. Tente novamente.");
+        await finishLoadingCycle(startedAt, controller.signal);
         if (!controller.signal.aborted) { setData(summary); setExpired(false); }
       } catch (reason) {
         if (!controller.signal.aborted) { setError(reason instanceof Error ? reason.message : "Não foi possível carregar o painel."); setExpired(reason instanceof ItemApiError && reason.status === 401); }
@@ -89,7 +94,7 @@ export default function Dashboard() {
           <button onClick={reload} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"><RefreshCw size={16} className={loading ? "animate-spin" : ""} aria-hidden="true" />Atualizar painel</button>
         </div>
         <section className="mb-7 rounded-3xl bg-black px-6 py-7 text-white sm:px-8"><h2 className="text-2xl font-bold tracking-tight">Perdeu ou encontrou algum objeto?</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">Registre os detalhes e acompanhe a situação dos seus cadastros.</p><Link href="/cadastrar-item" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black hover:bg-gray-100"><PlusCircle size={18} aria-hidden="true" />Cadastrar item</Link></section>
-        {loading ? <p role="status" className="mb-6 rounded-2xl border border-gray-200 bg-white p-8 text-gray-600">Carregando os dados da sua conta…</p> : error ? <div role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p>{error}</p>{expired ? <Link href="/login" className="mt-3 inline-block font-semibold underline">Entrar novamente</Link> : <button onClick={reload} className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold">Tentar novamente</button>}</div> : data && <SummaryContent data={data} />}
+        {loading ? <FindlyLoading message="Carregando os dados da sua conta…" /> : error ? <div role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p>{error}</p>{expired ? <Link href="/login" className="mt-3 inline-block font-semibold underline">Entrar novamente</Link> : <button onClick={reload} className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold">Tentar novamente</button>}</div> : data && <SummaryContent data={data} />}
         <section className="mt-8"><h2 className="mb-4 text-lg font-bold">Acesso rápido</h2><div className="grid gap-4 sm:grid-cols-3">
           {[{ href: "/meus-itens", title: "Meus itens", text: "Acompanhe seus registros.", Icon: Package }, { href: "/itens-perdidos?tipo=found", title: "Buscar objetos", text: "Consulte os itens encontrados.", Icon: Search }, { href: "/itens-perdidos", title: "Alertas de perda", text: "Veja o que estão procurando.", Icon: Bell }].map(({ href, title, text, Icon }) => <Link key={href} href={href} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 hover:border-gray-400"><Icon size={23} className="shrink-0 text-gray-600" aria-hidden="true" /><div className="flex-1"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-xs text-gray-600">{text}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}
         </div></section>

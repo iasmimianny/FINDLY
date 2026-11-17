@@ -18,3 +18,32 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.findly-sidebar, .findly-sidebar-content {
+  transition-duration: 320ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.findly-sidebar-label {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 180px;
+  opacity: 1;
+  white-space: nowrap;
+  transition: max-width 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease, transform 320ms ease;
+}
+.findly-sidebar[data-collapsed="true"] .findly-sidebar-label { max-width: 0; opacity: 0; }
+[data-collapsed="true"] .findly-sidebar-label {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-8px);
+}
+.findly-loading-ring { animation: findly-ring 2.4s ease-in-out infinite; }
+.findly-loading-search { animation: findly-search 2.4s ease-in-out infinite; }
+.findly-loading-dot { animation: findly-dot 1.2s ease-in-out infinite; }
+@keyframes findly-ring { 0%, 100% { transform: scale(.9); opacity: .4; } 50% { transform: scale(1.1); opacity: 1; } }
+@keyframes findly-search { 0%, 100% { transform: translate(0, 0) rotate(-12deg); } 50% { transform: translate(-10px, -10px) rotate(8deg); } }
+@keyframes findly-dot { 0%, 70%, 100% { opacity: .3; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .findly-sidebar, .findly-sidebar-content, .findly-sidebar-label { transition: none; }
+  .findly-loading * { animation: none; }
+}
