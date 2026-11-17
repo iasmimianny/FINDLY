@@ -641,6 +641,570 @@ gerenciados automaticamente pelas requisições.
 > A execução foi feita contra um Django local (SQLite + cache em memória), com
 > e-mail no console — o mesmo comportamento do `docker compose` em dev.
 
+## 🗓️ 2026-11-09 — App `items`: achados, perdidos, máquina de estados e fotos
+
+### 🎯 Objetivo
+Implementar o primeiro app de domínio do núcleo do Findly: cadastro de objetos
+encontrados e alertas de perdidos, com ciclo de vida controlado, permissões por
+papel, filtros e upload seguro de fotos.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/items/models.py` | `FoundItem`, `LostReport`, `ItemPhoto` + enums de categoria/status |
+| `src/apps/items/services.py` | Máquina de estados transacional (`transition_found_item`) |
+| `src/apps/items/permissions.py` | Autor/operador/admin, fotos e alertas |
+| `src/apps/items/serializers.py` | Leitura/escrita separadas, status e upload |
+| `src/apps/items/views.py` + `urls.py` | 12 rotas em `/api/items/` |
+| `src/apps/items/filters.py` | Status, categoria, período, `mine` e busca |
+| `src/apps/items/admin.py` | Registro no admin secreto + inline de fotos |
+| `src/services/photo_service.py` | Validação, orientação, resize, JPEG e remoção de EXIF |
+| `src/apps/items/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/items/tests/` | 51 testes |
+
+### 🔌 Endpoints
+- **Achados:** `GET/POST /api/items/found/`, `GET/PATCH /api/items/found/{code}/`,
+  `POST .../status/`, `POST .../photos/`, `DELETE .../photos/{id}/`.
+- **Perdidos:** `GET/POST /api/items/lost/`, `GET/PATCH /api/items/lost/{code}/`,
+  `POST .../cancel/`.
+- Código público de 10 caracteres em vez de ID sequencial; filtros de status,
+  categoria, período, `mine` e busca textual; paginação global (20/página).
+
+### 🔁 Máquina de estados
+`REPORTADO → EM_CUSTODIA → AGUARDANDO_RETIRADA → DEVOLVIDO`, com saída para
+`EXPIRADO`/`ENCAMINHADO`. Estados finais são terminais; saltos inválidos e status
+repetido retornam `400`. Toda transição passa por serviço atômico — a view nunca
+grava `status` diretamente.
+
+### 🔐 Permissões e privacidade
+- Autor edita o achado apenas em `REPORTADO`; depois, só operador/admin.
+- Status e custódia: somente operador/admin.
+- Alertas de perda: dono enquanto `ABERTO`; admin sempre.
+- `reported_by`/`owner` expõem somente `id` e `full_name` (sem e-mail/telefone).
+- Sem `DELETE` de itens: o ciclo termina em estado final (histórico preservado).
+
+### 🖼️ Serviço de fotos
+- Extensões `jpg/jpeg/png/webp`, máximo 5 MB.
+- `ImageOps.exif_transpose` antes de descartar metadados.
+- Maior lado limitado a 1600 px, recompressão JPEG (q=85).
+- Transparência achatada em fundo branco; nomes aleatórios em
+  `media/items/<public_code>/`.
+- Remoção da foto apaga o arquivo e o registro.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items` | **51 passed** ✅ |
+| `pytest` (suíte completa) | **120 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings (após `ENUM_NAME_OVERRIDES`) ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Fotos em disco local (`MEDIA_ROOT`/volume Docker) — troca para S3 fica isolada
+  no serviço de fotos.
+- Listagem exige autenticação; contato do autor não é exposto.
+- Categorias fixas em código (`TextChoices`) para evitar tabela de apoio nesta fase.
+- QR de retirada (24 h, uso único) será implementado no app `operations`.
+
+### ⏭️ Próximos passos
+1. App `audit`: trilha imutável e integração em `transition_found_item`.
+2. App `operations`: custódia, pontos de coleta, claims e retirada via QR.
+3. Serviços restantes (QR, notificações) e coleção Postman de itens.
+
+## 🗓️ 2026-11-09 — App `audit`: trilha imutável e histórico de itens
+
+### 🎯 Objetivo
+Garantir rastreabilidade inegociável: toda criação de item e toda mudança de
+status passa a gravar um evento no mesmo bloco transacional da operação.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/audit/models.py` | `AuditEvent` imutável + `AuditAction` |
+| `src/apps/audit/services.py` | `record_event` (usado por items) |
+| `src/apps/audit/permissions.py` | Histórico: autor, operador ou admin |
+| `src/apps/audit/serializers.py` | Eventos somente leitura |
+| `src/apps/audit/filters.py` | Item, ação, período e busca |
+| `src/apps/audit/views.py` + `urls.py` | Histórico aninhado + consulta admin |
+| `src/apps/audit/admin.py` | Admin somente leitura |
+| `src/apps/audit/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/audit/tests/` | 25 testes |
+
+### 🔌 Endpoints
+- `GET /api/items/found/{code}/history/` — autor, operador ou admin (sem
+  paginação; ordem do mais recente para o mais antigo).
+- `GET /api/audit/` e `GET /api/audit/{id}/` — apenas admin, com filtros por
+  `item`, `action`, `date_from`, `date_to`, busca e ordenação.
+- `POST/PATCH/DELETE` nesses recursos retornam `405`.
+
+### 🔒 Imutabilidade e atomicidade
+- `AuditEvent.save()` em registro existente e `delete()` levantam `ValueError`.
+- Admin sem permissão de criação, edição ou exclusão.
+- `AuditAction`: `CREATED` e `STATUS_CHANGED` em uso; `CUSTODY_TRANSFERRED`,
+  `CLAIM_APPROVED`, `CLAIM_REJECTED` e `WITHDRAWAL_CONFIRMED` reservadas para
+  `operations`.
+- `transition_found_item` grava `STATUS_CHANGED` antes de retornar; o
+  `perform_create` de itens grava `CREATED` sob `@transaction.atomic`.
+- Falha simulada na auditoria reverte a transição e o cadastro (testado).
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/audit` | **25 passed** ✅ |
+| `pytest` (suíte completa) | **145 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- `responsible` anulável para permitir ações automáticas futuras.
+- FK de ponto de coleta adiada para `operations` (evita dependência circular).
+- Histórico do item sem paginação (volume pequeno por item).
+- Import local de `apps.audit` em `items` mantém a dependência em uma direção.
+
+### ⏭️ Próximos passos
+1. App `operations`: pontos de coleta, custódia, claims e retirada via QR.
+2. Serviços de QR (24 h, uso único) e notificações.
+3. Coleção Postman de itens/auditoria.
+
+## 🗓️ 2026-11-09 — App `operations`: pontos, custódia, claims e retirada via QR
+
+### 🎯 Objetivo
+Fechar o ciclo operacional do item: receber em um ponto de coleta, registrar
+quem detém a posse física, avaliar reivindicações e liberar a retirada com QR
+Code temporário e de uso único — tudo auditado na mesma transação.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/operations/models.py` | `CollectionPoint`, `CustodyRecord`, `Claim`, `WithdrawalAuthority` |
+| `src/apps/operations/services.py` | Custódia, claims e retirada (transacionais) |
+| `src/apps/operations/permissions.py` | Custódia e claims por autor/operador/admin |
+| `src/apps/operations/serializers.py` | Pontos, custódia, claims e QR |
+| `src/apps/operations/filters.py` | Pontos e claims (status, item, período, `mine`) |
+| `src/apps/operations/views.py` + `urls.py` | Rotas em `/api/operations/` |
+| `src/apps/operations/admin.py` | Admin somente leitura para custódia/claims/QR |
+| `src/services/qrcode_service.py` | Etiqueta e QR de retirada (PNG) |
+| `src/apps/operations/migrations/0001_initial.py` | Migração inicial |
+| `src/apps/audit/migrations/0002_*.py` | FK `collection_point` + `CLAIM_CANCELLED` |
+| `src/apps/operations/tests/` | 78 testes |
+
+### 🔌 Endpoints
+- **Pontos:** `GET/POST /api/operations/points/`, `GET/PATCH .../{id}/` (escrita
+  apenas admin; sem DELETE).
+- **Custódia:** `GET .../items/found/{code}/custody/`,
+  `POST .../custody/transfer/`, `GET .../label/` (etiqueta QR PNG).
+- **Claims:** `GET/POST .../items/found/{code}/claims/`,
+  `GET /api/operations/claims/`, `.../{id}/`, e ações `approve`, `reject`,
+  `cancel`.
+- **Retirada:** `POST /api/operations/withdrawals/confirm/`.
+
+### 🔁 Regras de negócio
+- Cadastro do achado abre custódia inicial com quem registrou (sem evento extra;
+  o `CREATED` já cobre a criação).
+- Transferência para ponto fecha o registro anterior, valida capacidade e
+  vínculo operador→ponto, muda `REPORTADO → EM_CUSTODIA` e grava
+  `CUSTODY_TRANSFERRED`.
+- Quem cadastrou o achado não pode reivindicá-lo; não há claim pendente duplicado
+  por usuário/item; item terminal não aceita claim.
+- Aprovação exige item em `EM_CUSTODIA`/`AGUARDANDO_RETIRADA`, move para
+  `AGUARDANDO_RETIRADA`, emite QR de 24 h e recusa os demais pendentes.
+- Retirada valida token (aceita payload do QR), expiração e uso único; move para
+  `DEVOLVIDO`, fecha a custódia e grava `WITHDRAWAL_CONFIRMED`.
+- `AuditEvent` ganhou FK opcional `collection_point` e a ação `CLAIM_CANCELLED`.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/operations` | **78 passed** ✅ |
+| `pytest` (suíte completa) | **223 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos novos) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Claims só podem ser aprovados com o item sob custódia de ponto (retirada
+  presencial).
+- Operador só transfere para ponto do qual é responsável (quando o ponto tem
+  operadores cadastrados).
+- QR de retirada é persistido em `media/qrcodes/withdrawals/<token>.png`; a
+  etiqueta do item é gerada sob demanda.
+- Cancelamento de claim gera evento próprio (`CLAIM_CANCELLED`).
+
+### ⏭️ Próximos passos
+1. Serviço de notificações (match, custódia e retirada).
+2. Tarefas agendadas: expiração de itens e limpeza de QR vencido.
+3. Coleção Postman de itens, operações e auditoria.
+
+## 🗓️ 2026-11-09 — Serviço de notificações (match, custódia e retirada)
+
+### 🎯 Objetivo
+Avisar por e-mail/push os envolvidos no ciclo do item: donos de alertas de perda
+quando surge um achado compatível, autor do achado nas trocas de custódia,
+reivindicante na liberação da retirada e ambos na entrega final.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/services/notification_service.py` | Matching, mensagens, canais e agendamento pós-commit |
+| `src/apps/items/templates/items/notifications/` | `match.txt`, `lost_report_matches.txt` |
+| `src/apps/operations/templates/operations/notifications/` | `custody.txt`, `awaiting_pickup.txt`, `withdrawal_confirmed.txt` |
+| `src/apps/items/tests/test_notifications.py` | 12 testes (match, janela, falha de SMTP) |
+| `src/apps/operations/tests/test_notifications.py` | 4 testes (custódia, aprovação, retirada) |
+
+### 🔁 Regras implementadas
+- **Match** exige mesma categoria, achado posterior à perda (janela de 30 dias)
+  e ao menos uma palavra significativa em comum (sem acentos/stopwords, 4+ letras).
+- Notificações nos dois sentidos: ao cadastrar o achado e ao abrir o alerta.
+- Alertas cancelados, achados terminais e itens encontrados antes da perda são
+  ignorados; até 5 notificações por evento (`MATCH_NOTIFICATION_LIMIT`).
+- Transferência avisa o autor do achado; aprovação avisa o reivindicante;
+  retirada avisa reivindicante + autor.
+- Envio agendado com `transaction.on_commit`; rollback não dispara mensagem.
+- Falhas de SMTP/push são logadas e não quebram a operação.
+- Canal de push opcional (`NOTIFICATIONS_PUSH_ENABLED`); sem provedor, loga.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_notifications.py src/apps/operations/tests/test_notifications.py` | **16 passed** ✅ |
+| `pytest` (suíte completa) | **238 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos alterados) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Notificação é efeito colateral: nunca participa da transação de negócio.
+- O token do QR **não** vai no e-mail; a mensagem aponta para a conta autenticada.
+- Push fica atrás de flag até a integração com um provedor (FCM/APNs/Web Push).
+
+### ⏭️ Próximos passos
+1. Tarefas agendadas: expiração de itens e limpeza de QR vencido.
+2. Coleção Postman de itens, operações e auditoria.
+3. Revisar envio de notificações via Celery quando o broker estiver disponível.
+
+## 🗓️ 2026-11-09 — Manutenção automática (tarefas agendadas)
+
+### 🎯 Objetivo
+Fechar o ciclo de vida dos itens sem intervenção manual: encerrar achados e
+alertas de perda antigos e limpar os PNGs de QR de retirada já vencidos,
+preservando a trilha de auditoria.
+
+### 📁 Estrutura criada
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `src/apps/items/tasks.py` | `expire_found_items` e `expire_lost_reports` |
+| `src/apps/operations/tasks.py` | `cleanup_expired_withdrawal_qrs` |
+| `src/apps/items/management/commands/setup_periodic_tasks.py` | Registro idempotente no `django_celery_beat` |
+| `src/apps/items/tests/test_tasks.py` | 8 testes (expiração e agendamento) |
+| `src/apps/operations/tests/test_tasks.py` | 5 testes (limpeza de QR) |
+
+### 🔁 Regras implementadas
+- **Expiração de achado:** usa `updated_at`; qualquer transferência, mudança de
+  status ou decisão renova o prazo (`ITEM_EXPIRATION_DAYS`, padrão 90 dias).
+- A transição para `EXPIRADO` grava `STATUS_CHANGED` com responsável nulo e
+  recusa os claims pendentes na **mesma transação** (`CLAIM_REJECTED`, também
+  sem responsável), via `reject_claim(user=None)`.
+- **Expiração de alerta:** `LostReport` aberto com `lost_at` além de
+  `LOST_REPORT_EXPIRATION_DAYS` vira `EXPIRADO`.
+- **Limpeza de QR:** apaga só o PNG expirado há mais de
+  `WITHDRAWAL_QR_RETENTION_DAYS` e limpa `qr_image`; o `WithdrawalAuthority`
+  permanece para histórico/auditoria.
+- Estados terminais (`DEVOLVIDO`, `EXPIRADO`, `ENCAMINHADO`) e alertas já
+  cancelados/expirados não são tocados.
+- `setup_periodic_tasks` é idempotente e roda no serviço `migrate` do Docker
+  Compose, logo após `migrate`.
+- Agendamentos (fuso `America/Sao_Paulo`): itens às 03:00, alertas às 03:15 e
+  limpeza de QR às 03:30.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_tasks.py src/apps/operations/tests/test_tasks.py` | **13 passed** ✅ |
+| `pytest` (suíte completa) | **251 passed** ✅ |
+| `manage.py check` | sem issues ✅ |
+| `makemigrations --check --dry-run` | sem drift ✅ |
+| `spectacular --validate` | 0 erros / 0 warnings ✅ |
+| `ruff` + `black` (arquivos alterados) | limpos ✅ |
+
+### 📌 Decisões desta etapa
+- Expiração é ação do sistema: auditoria com `responsible=None`.
+- QR expirado não apaga o registro de autorização — só o arquivo, mantendo a
+  rastreabilidade da emissão.
+- Tarefas toleram execução concorrente com `select_for_update` por item.
+- `reject_claim` passou a aceitar `user=None` (recusa automática).
+
+### ⏭️ Próximos passos
+1. Coleção Postman de itens, operações e auditoria.
+2. Revisar envio de notificações via Celery quando o broker estiver disponível.
+
+## 🗓️ 2026-11-09 — Coleção Postman de itens, operações, auditoria e manutenção
+
+### 🎯 Objetivo
+Fechar a collection Postman para o front consumir toda a API: autenticação e
+usuários já existiam; faltavam itens, operações, auditoria e manutenção.
+
+### 📁 Estrutura criada
+| Pasta | Requisições | Conteúdo |
+| :--- | :--- | :--- |
+| `3 - Itens` | 12 | Achados, perdidos, fotos e máquina de estados |
+| `4 - Operacoes` | 14 | Pontos, custódia, claims e retirada por QR |
+| `5 - Auditoria` | 3 | Histórico do item e trilha global (admin) |
+| `6 - Manutencao` | 4 | Verificação das tarefas automáticas |
+
+Total da collection: **46 requisições** em 6 pastas, com `definition.yaml` por
+pasta e descrição do fluxo completo na definição da collection. O environment
+`Findly Local` ganhou as variáveis encadeadas `found_code`, `lost_code`,
+`photo_id`, `point_id`, `point_name`, `point_address`, `point_capacity`,
+`claim_id`, `claim_message`, `withdrawal_token` e `audit_event_id`.
+
+### 🔁 Encadeamento dos scripts
+- Cadastrar/listar achado grava `found_code`; perdido grava `lost_code`;
+  upload grava `photo_id`.
+- Criar/listar ponto grava `point_id`; abrir/listar claim grava `claim_id`.
+- Aprovar claim grava `withdrawal_token`; confirmar retirada limpa o token.
+- A pasta 6 apenas **verifica** estados (`EXPIRADO`, claims recusadas,
+  `STATUS_CHANGED` com `responsible = null`), porque notificações e manutenção
+  não têm rota HTTP.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `postman collection lint "postman/collections/Findly API"` | **46 scanned, 0 errors, 0 warnings** ✅ |
+| `postman environment lint "postman/environments/Findly Local.environment.yaml"` | limpo ✅ |
+| Fluxo HTTP real com `config.smoke_settings` (SQLite + LocMem) | login → achado → ponto → custódia → claim → aprovação → retirada **OK** ✅ |
+| Histórico do item após o fluxo | 7 eventos: `CREATED`, `CUSTODY_TRANSFERRED`, `CLAIM_APPROVED`, `WITHDRAWAL_CONFIRMED` + `STATUS_CHANGED` ✅ |
+| Etiqueta QR do item | `200 image/png` ✅ |
+
+### 📌 Decisões desta etapa
+- URLs com query params refletem **apenas** os parâmetros habilitados; os demais
+  ficam como `disabled: true` (exigência do lint v3).
+- A collection não chama Celery: a pasta 6 documenta os comandos e confere o
+  resultado no banco.
+- Senhas demo permanecem apenas locais; `admin_password` continua vazio no
+  versionamento.
+
+### ⏭️ Próximos passos
+1. Revisar envio de notificações via Celery quando o broker estiver disponível.
+2. Avaliar exemplos salvos (`.resources/*.resources/examples`) para o front.
+
+## 🗓️ 2026-11-10 — Healthchecks, CI e notificações push assíncronas
+
+### 🎯 Objetivo
+Fechar dois pré-requisitos de produção que não dependiam do front: monitorar a
+saúde da aplicação (Docker/balanceador) e tirar o envio de notificações do
+processo web, com suporte real a Web Push.
+
+### 🧩 Healthchecks
+| Rota | Tipo | Comportamento |
+| :--- | :--- | :--- |
+| `GET /health/` | liveness | Responde `{"status": "ok"}` sem tocar em banco/cache |
+| `GET /health/ready/` | readiness | Testa banco + cache; `503` com o detalhe de quem falhou |
+
+Views Django simples (sem JWT e sem throttle do DRF), em `src/config/health.py`,
+com testes em `src/config/tests/test_health.py`.
+
+### 🔔 Notificações + push
+- Novo app `apps.notifications` com `PushSubscription` (endpoint único por
+  navegador, chaves `p256dh`/`auth`, ativação e último uso).
+- Rotas `GET/POST /api/notifications/subscriptions/` e
+  `DELETE /api/notifications/subscriptions/{id}/` (só as do próprio usuário).
+- `services/push_service.py` entrega Web Push com VAPID via `pywebpush` e trata
+  inscrição expirada (`404/410` desativa) e falha transitória (mantém ativa).
+- `notification_service._deliver_push` passou a enviar de verdade; `dispatch`
+  usa a task `notifications.send` quando `NOTIFICATIONS_ASYNC_ENABLED=True`,
+  com fallback síncrono se o broker estiver fora.
+- Novas variáveis: `NOTIFICATIONS_ASYNC_ENABLED`, `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_ADMIN_EMAIL`; `pywebpush==2.5.0` em
+  `requirements.txt`.
+
+### ⚙️ CI (GitHub Actions)
+`.github/workflows/ci.yml` com dois jobs:
+- **lint**: `ruff check src` e `black --check src`;
+- **testes e schema**: Postgres 16 + Redis 7, `manage.py check`,
+  `makemigrations --check --dry-run`, `spectacular --validate --fail-on-warn`
+  e `pytest`.
+O drift antigo de `ruff`/`black` em `src/security/` foi corrigido para o CI
+nascer verde.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest` completo | **270 passed** |
+| `ruff check src` | limpo |
+| `black --check src` | 124 arquivos sem alteração |
+| `manage.py check` | sem issues |
+| `makemigrations --check --dry-run` | sem drift |
+| `spectacular --validate --fail-on-warn` | 0 warnings, 0 errors |
+
+### 🧠 Decisões desta etapa
+- `NOTIFICATIONS_ASYNC_ENABLED` tem default `not DEBUG`: síncrono em
+  desenvolvimento/testes, assíncrono em produção.
+- Push é opcional: sem VAPID completo o serviço devolve `skipped` e registra no
+  log, sem quebrar a operação de negócio.
+- O CI usa PostgreSQL (não SQLite) para se aproximar do ambiente real.
+
+### ➡️ Próximos passos
+1. Compose de produção (gunicorn, collectstatic, nginx, `DEBUG=False`).
+2. Seed de demonstração e exemplos de resposta na collection Postman.
+
+## 🗓️ 2026-11-10 — Compose de produção
+
+### 🎯 Objetivo
+Transformar o ambiente Docker em algo publicável: gunicorn no lugar do
+`runserver`, arquivos estáticos coletados, nginx na entrada e segredos/portas
+fechados.
+
+### 🧩 Arquivos criados/alterados
+| Arquivo | Conteúdo |
+| :--- | :--- |
+| `docker-compose.prod.yml` | `nginx`, `web` (gunicorn), `migrate`, `worker`, `beat`, `db`, `redis` |
+| `docker/nginx.conf` | Proxy para `web:8000`, `/static/`, `/media/` e `/health/` |
+| `.env.production.example` | Modelo de ambiente de produção (segredos em branco) |
+| `.gitignore` / `.dockerignore` | Liberam `!.env.production.example` |
+
+### ⚙️ Decisões
+- A imagem de produção usa `INSTALL_DEV=false` (sem pytest/ruff/black).
+- O serviço `migrate` roda `migrate`, `setup_periodic_tasks` e `collectstatic`
+  antes de `web`/`worker`/`beat`; o `web` só inicia com ele concluído.
+- PostgreSQL e Redis **não** publicam portas; o Redis exige `REDIS_PASSWORD`.
+- Apenas o nginx publica `${HTTP_PORT:-80}`; o healthcheck do `web` usa
+  `GET /health/` e o nginx espera o `web` ficar saudável.
+- `X-Forwarded-Proto` é preservado de um proxy TLS à frente (map no nginx),
+  evitando loop de `SECURE_SSL_REDIRECT`.
+- `client_max_body_size 12m` no nginx (upload limitado a 5 MB na aplicação).
+- `/media/` é servido pelo nginx com `autoindex off`.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `docker compose --env-file .env.production -f docker-compose.prod.yml config --quiet` | válido |
+| Imagem build com `INSTALL_DEV=false` | previsto no compose (Docker daemon não estava ativo) |
+
+### ➡️ Próximos passos
+1. Seed de demonstração e exemplos de resposta na collection Postman.
+
+## 🗓️ 2026-11-10 — Seed de demonstração e exemplos na collection
+
+### 🎯 Objetivo
+Deixar o front com um ambiente pronto para explorar (contas, pontos, itens em
+estados diferentes) e respostas de exemplo na collection Postman, sem depender
+de montar o fluxo manualmente.
+
+### 🌱 `seed_demo` (idempotente)
+`src/apps/items/management/commands/seed_demo.py`:
+
+| Conta | Papel |
+| :--- | :--- |
+| `demo@findly.local` | comum |
+| `reivindicante@findly.local` | comum |
+| `operador@findly.local` | operador de ponto |
+| `admin@findly.local` | admin (`is_staff`/`is_superuser`) |
+
+- Senha padrão `Findly@2026!` (`--password` troca; `--reset-passwords` reaplica).
+- 2 pontos de coleta e 5 códigos fixos: `DEMOACHADO` (`EM_CUSTODIA`),
+  `DEMOCHAVES` (`REPORTADO`), `DEMOCARTEI` (`AGUARDANDO_RETIRADA`, claim
+  aprovado + QR), `DEMOPERDID` (match de `DEMOACHADO`) e `DEMOALERTA` (sem match).
+- Recusa rodar com `DEBUG=False` sem `--force`.
+- E-mail/push silenciados com `override_settings` durante a carga.
+- Releitura do item antes de aprovar o claim: `transfer_to_point` não muta a
+  instância em memória (bug pego pelos testes).
+- 7 testes em `src/apps/items/tests/test_seed_demo.py` (dados, papéis, trilha de
+  auditoria, idempotência, reset de senha e guarda de `DEBUG`).
+
+### 🧪 Collection Postman
+- Nova pasta **`7 - Notificacoes`** (3 requisições): listar, registrar e remover
+  inscrição de Web Push. Total: **49 requisições em 7 pastas**.
+- Variáveis novas no environment: `subscription_id`, `push_endpoint`,
+  `push_p256dh`, `push_auth`.
+- **10 exemplos de resposta** salvos em `.resources/<request>.resources/examples/`:
+  Login, Meu perfil, Listar achados, Cadastrar achado, Detalhar achado, Listar
+  pontos, Abrir claim, Aprovar claim, Confirmar retirada e Registrar inscrição.
+- Exemplos escritos em YAML direto: `postman collection example update -d` não
+  preservou o JSON com aspas.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `pytest src/apps/items/tests/test_seed_demo.py` | 7 passed |
+| `manage.py seed_demo --force` (2×) | cria e depois "nada a criar" |
+| `postman collection lint` | 49 requisições, 0 erros, 0 warnings |
+| `postman environment lint` | 0 erros, 0 warnings |
+
+### 🧠 Decisões desta etapa
+- O seed usa códigos fixos do alfabeto público para ser idempotente e servir de
+  referência nos exemplos do Postman.
+- Os exemplos refletem os serializers reais (sem e-mail do autor, `withdrawal`
+  aninhado, `occupancy`/`has_capacity` do ponto).
+- O QR gerado pelo seed durante a validação foi removido de `media/`.
+
+### ➡️ Próximos passos
+1. Publicar os commits dos blocos 3 e 4.
+
+## 🗓️ 2026-11-11 — Envio real de e-mail pelo Gmail
+
+### 🎯 Objetivo
+Tirar o e-mail do backend de console e entregar de verdade pela conta
+`findly.unifip@gmail.com`, para que verificação de conta, reset de senha e as
+notificações de negócio cheguem ao destinatário.
+
+### ⚙️ Configuração
+- `.env` local (gitignored) passou a usar `smtp.EmailBackend` com
+  `smtp.gmail.com:587`, STARTTLS, `EMAIL_HOST_USER=findly.unifip@gmail.com` e
+  `DEFAULT_FROM_EMAIL=Findly <findly.unifip@gmail.com>`.
+- A senha é uma **App Password** de 16 caracteres (2FA ativo) e fica apenas no
+  `.env`; nenhuma credencial é versionada.
+- `EMAIL_TIMEOUT=10` adicionado em `settings.py`, `.env.example` e
+  `.env.production.example`: evita que um SMTP lento trave a requisição.
+- `.env.production.example` ganhou comentário sobre Gmail (porta 587 + App
+  Password, limite de ~500 destinatários/dia).
+
+### 🔍 Diagnóstico da credencial
+- Conexão e TLS em 587/465: OK.
+- `AUTH` com senha dummy: `535 BadCredentials` (servidor processa auth normal).
+- Primeira App Password informada: recusada com `535 5.7.8`.
+- Segunda App Password: aceita; `sendtestemail` retornou sucesso (exit 0).
+
+### 🧹 Ajuste de formatação
+- `manage.py` estava fora do padrão do Black (linha em branco após o docstring
+  do módulo); corrigido para o `black --check` ficar limpo.
+
+### 📬 Collection e environment
+- Removida a instrução de copiar `uid`/`token` do console: agora apontam para o
+  link no e-mail entregue pelo SMTP (com fallback documentado para o console).
+- Cadastro, verificação, solicitar reset e a visão geral da collection
+  atualizados com o remetente `Findly <findly.unifip@gmail.com>`.
+- Adicionada a pasta `7 - Notificacoes` à tabela de módulos da collection (estava
+  ausente na documentação).
+- Descrições das variáveis `verification_*`, `reset_*` e `demo_email` no
+  environment ajustadas para o fluxo real de e-mail.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `manage.py sendtestemail findly.unifip@gmail.com` | entregue (exit 0) |
+| `manage.py sendtestemail magnofilho@ads.fiponline.edu.br` | entregue (exit 0) |
+| `postman collection lint` | 49 requisições, 0 erros, 0 warnings |
+| `postman environment lint` | 0 erros, 0 warnings |
+| `ruff check .` | All checks passed |
+| `black --check .` | 127 arquivos sem alteração |
+| `pytest src/apps/authentication src/apps/notifications` | 53 passed |
+
+### 🧠 Decisões desta etapa
+- Gmail atende demo/teste; para volume de produção, trocar por provedor
+  transacional (SES, Resend, SendGrid) mantendo o mesmo contrato SMTP.
+- Falhas de SMTP continuam isoladas: cadastro/reset logam o erro e a API
+  responde normalmente; as notificações de negócio também não quebram.
+
+### ➡️ Próximos passos
+1. Recriar os containers (`docker compose up -d --force-recreate web worker`)
+   para o `env_file` ler a configuração nova quando o Docker estiver em uso.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->
