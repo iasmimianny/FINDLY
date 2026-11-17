@@ -14,7 +14,7 @@ values:
     value: 'apresentacao@findly.local'
     enabled: true
     type: default
-    description: E-mail da conta criada no cadastro. Use outro se já existir.
+    description: E-mail da conta criada no cadastro. Use um endereço que você possa acessar (a verificação chega por SMTP).
   - key: demo_password
     value: 'S3nh@Forte!2026'
     enabled: true
@@ -49,22 +49,22 @@ values:
     value: ''
     enabled: true
     type: default
-    description: Copie o uid do e-mail de verificação (console do Django).
+    description: Copie o uid do link no e-mail de verificação (ou do console do Django, se o backend estiver sem SMTP).
   - key: verification_token
     value: ''
     enabled: true
     type: secret
-    description: Copie o token do e-mail de verificação (expira em 24 h).
+    description: Copie o token do link no e-mail de verificação (expira em 24 h).
   - key: reset_uid
     value: ''
     enabled: true
     type: default
-    description: Copie o uid do e-mail de redefinição de senha.
+    description: Copie o uid do link no e-mail de redefinição de senha.
   - key: reset_token
     value: ''
     enabled: true
     type: secret
-    description: Copie o token do e-mail de redefinição (expira em 1 h).
+    description: Copie o token do link no e-mail de redefinição (expira em 1 h).
   - key: new_password
     value: 'N0vaS3nh@Forte!2026'
     enabled: true
@@ -80,3 +80,78 @@ values:
     enabled: true
     type: secret
     description: Senha do admin local — não é versionada; preencha no seu ambiente.
+  - key: found_code
+    value: ''
+    enabled: true
+    type: default
+    description: Código público do achado; salvo pela listagem/cadastro da pasta 3.
+  - key: lost_code
+    value: ''
+    enabled: true
+    type: default
+    description: Código público do alerta de perda; salvo pela listagem/cadastro.
+  - key: photo_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da foto do achado; salvo pelo upload.
+  - key: point_id
+    value: '1'
+    enabled: true
+    type: default
+    description: ID do ponto de coleta; salvo ao listar/criar um ponto.
+  - key: point_name
+    value: 'Portaria Principal'
+    enabled: true
+    type: default
+    description: Nome usado na criação do ponto de coleta.
+  - key: point_address
+    value: 'Rua das Flores, 100 - Térreo'
+    enabled: true
+    type: default
+    description: Endereço usado na criação do ponto de coleta.
+  - key: point_capacity
+    value: '50'
+    enabled: true
+    type: default
+    description: Capacidade do ponto (vazio = ilimitado).
+  - key: claim_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da reivindicação; salvo ao abrir/listar um claim.
+  - key: claim_message
+    value: 'É meu: possui uma etiqueta com meu nome no bolso interno.'
+    enabled: true
+    type: default
+    description: Justificativa enviada ao abrir uma reivindicação.
+  - key: withdrawal_token
+    value: ''
+    enabled: true
+    type: secret
+    description: Token do QR de retirada; salvo automaticamente na aprovação do claim.
+  - key: audit_event_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID do evento de auditoria; salvo pela listagem de /api/audit/.
+  - key: subscription_id
+    value: ''
+    enabled: true
+    type: default
+    description: ID da inscrição de push; salvo ao listar/registrar na pasta 7.
+  - key: push_endpoint
+    value: 'https://push.example.com/subscriptions/demo-endpoint'
+    enabled: true
+    type: default
+    description: Endpoint de exemplo para testar a inscrição. No app real vem do PushManager.
+  - key: push_p256dh
+    value: 'BExampleP256dhPublicKeyPlaceholderForLocalTestingOnly'
+    enabled: true
+    type: default
+    description: Chave p256dh de exemplo (o navegador gera a real).
+  - key: push_auth
+    value: 'example-auth-secret'
+    enabled: true
+    type: secret
+    description: Segredo auth de exemplo (o navegador gera o real).
