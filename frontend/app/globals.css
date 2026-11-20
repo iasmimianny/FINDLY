@@ -47,3 +47,5 @@ body {
   .findly-sidebar, .findly-sidebar-content, .findly-sidebar-label { transition: none; }
   .findly-loading * { animation: none; }
 }
+
+.findly-overlay { --accent: #111111; --accent-foreground: #ffffff; --focus: #06b6d4; font-family: var(--font-geist-sans), Arial, sans-serif; }

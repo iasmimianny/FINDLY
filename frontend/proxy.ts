@@ -1,3 +1,4 @@
+import { staffAccountRedirect } from "./lib/navigation";
 ﻿import { NextResponse, type NextRequest } from "next/server";
 
 const API_URL = (
@@ -73,9 +74,12 @@ export async function proxy(request: NextRequest) {
     if (session.status !== 200) return unavailable();
 
     const { pathname } = request.nextUrl;
-    let response = NextResponse.next({ headers: responseHeaders });
+    const { role } = await session.json();
+    const accountRedirect = staffAccountRedirect(pathname, role);
+    let response = accountRedirect
+      ? NextResponse.redirect(new URL(accountRedirect, request.url), { status: 303, headers: responseHeaders })
+      : NextResponse.next({ headers: responseHeaders });
     if (pathname === "/funcionario" || pathname.startsWith("/funcionario/")) {
-      const { role } = await session.json();
       if (role !== "operator" && role !== "admin") {
         response = new NextResponse("Acesso restrito a funcionÃ¡rios.", {
           status: 403,
@@ -106,6 +110,8 @@ export const config = {
     "/",
     "/dashboard/:path*",
     "/perfil/:path*",
+    "/notificacoes/:path*",
+    "/faq/:path*",
     "/configuracao/:path*",
     "/meus-itens/:path*",
     "/pontos-coleta/:path*",

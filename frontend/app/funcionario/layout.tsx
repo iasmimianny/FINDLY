@@ -10,7 +10,7 @@ export default function FuncionarioLayout({
   children: ReactNode;
 }) {
   return (
-    <StaffProvider><div className="flex h-screen overflow-hidden bg-black font-sans">
+    <StaffProvider><div className="flex h-dvh overflow-hidden bg-black font-sans">
       <SidebarFuncionario />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white text-black">
