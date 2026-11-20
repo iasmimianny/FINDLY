@@ -1,20 +1,13 @@
-"use client";
-
 import Sidebar from "./Sidebar";
-import { useSidebarCollapsed } from "../../../components/SidebarToggle";
+import UserHeader from "../../../components/UserHeader";
+import type { ReactNode } from "react";
 
-interface PrivateLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function PrivateLayout({ children }: PrivateLayoutProps) {
-  const { collapsed } = useSidebarCollapsed();
-  return (
-    <div className="min-h-screen bg-white">
-      <Sidebar />
-      <div className={`findly-sidebar-content min-h-screen min-w-0 bg-gray-50 transition-[margin-left] duration-200 motion-reduce:transition-none ${collapsed ? "ml-20" : "ml-64"}`}>
-        {children}
-      </div>
+export default function PrivateLayout({ children }: { children: ReactNode }) {
+  return <div className="flex h-dvh overflow-hidden bg-black font-sans">
+    <Sidebar />
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-white text-gray-900">
+      <UserHeader />
+      <div className="flex-1 overflow-y-auto bg-gray-50">{children}</div>
     </div>
-  );
+  </div>;
 }
