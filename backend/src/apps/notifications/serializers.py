@@ -1,10 +1,10 @@
-"""Serializers das inscrições de push (formato Web Push)."""
+"""Serializers das inscrições de push (formato Web Push) e notificações internas."""
 
 from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import PushSubscription
+from .models import PushSubscription, Notification
 
 
 class PushKeysSerializer(serializers.Serializer):
@@ -69,4 +69,35 @@ class PushSubscriptionSerializer(serializers.ModelSerializer):
         return data
 
 
-__all__ = ["PushKeysSerializer", "PushSubscriptionSerializer"]
+# ---------------------------------------------------------------------------
+# Notificações internas
+# ---------------------------------------------------------------------------
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    """Representação das notificações internas do Findly.
+
+    Utilizado tanto na área do usuário quanto na área do funcionário.
+    Os campos são somente leitura, pois as notificações são geradas
+    automaticamente pelo backend.
+    """
+
+    class Meta:
+        model = Notification
+        fields = (
+            "id",
+            "kind",
+            "title",
+            "message",
+            "is_read",
+            "read_at",
+            "created_at",
+        )
+        read_only_fields = fields
+
+
+__all__ = [
+    "PushKeysSerializer",
+    "PushSubscriptionSerializer",
+    "NotificationSerializer",
+]

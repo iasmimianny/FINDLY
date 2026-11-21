@@ -95,6 +95,7 @@ class FoundItemViewSet(
     queryset = FoundItem.objects.select_related("reported_by").prefetch_related(
         "photos"
     )
+
     lookup_field = "public_code"
     permission_classes = [IsAuthenticated]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
@@ -108,19 +109,25 @@ class FoundItemViewSet(
     def get_serializer_class(self):
         if self.action in {"create", "update", "partial_update"}:
             return FoundItemWriteSerializer
+
         if self.action == "change_status":
             return FoundItemStatusSerializer
+
         if self.action == "upload_photo":
             return ItemPhotoUploadSerializer
+
         return FoundItemSerializer
 
     def get_permissions(self):
         if self.action in {"update", "partial_update"}:
             return [IsAuthenticated(), IsReporterOrOperatorOrAdmin()]
+
         if self.action == "change_status":
             return [IsOperatorOrAdmin()]
+
         if self.action in {"upload_photo", "delete_photo"}:
             return [IsAuthenticated(), CanManageItemPhotos()]
+
         return [IsAuthenticated()]
 
     @transaction.atomic
@@ -137,12 +144,16 @@ class FoundItemViewSet(
             user=self.request.user,
             new_status=item.status,
         )
+
         # A posse física começa com quem cadastrou o achado; o evento CREATED já
         # cobre a criação (não geramos um segundo evento de custódia).
         open_initial_custody(item, self.request.user)
 
         # Avisa donos de alertas de perda compatíveis (agendado pós-commit).
         notification_service.notify_found_item_matches(item)
+
+        # Avisa os funcionários sobre o novo objeto encontrado.
+        notification_service.notify_staff_found_item_created(item)
 
     @extend_schema(
         tags=["items"],
@@ -153,21 +164,27 @@ class FoundItemViewSet(
     @action(detail=True, methods=["post"], url_path="status")
     def change_status(self, request, public_code=None):
         """Aplica uma transição válida da máquina de estados."""
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         item = self.get_object()
+
         try:
             item = transition_found_item(
                 item,
                 serializer.validated_data["status"],
                 user=request.user,
             )
+
         except InvalidStatusTransition as exc:
             raise ValidationError({"status": [str(exc)]}) from exc
 
         return Response(
-            FoundItemSerializer(item, context=self.get_serializer_context()).data
+            FoundItemSerializer(
+                item,
+                context=self.get_serializer_context(),
+            ).data
         )
 
     @extend_schema(
@@ -184,15 +201,22 @@ class FoundItemViewSet(
     )
     def upload_photo(self, request, public_code=None):
         """Recebe uma imagem, remove EXIF e salva a versão comprimida."""
+
         item = self.get_object()
+
         serializer = self.get_serializer(
             data=request.data,
             context={**self.get_serializer_context(), "item": item},
         )
+
         serializer.is_valid(raise_exception=True)
         photo = serializer.save()
+
         return Response(
-            ItemPhotoSerializer(photo, context=self.get_serializer_context()).data,
+            ItemPhotoSerializer(
+                photo,
+                context=self.get_serializer_context(),
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -208,10 +232,18 @@ class FoundItemViewSet(
     )
     def delete_photo(self, request, public_code=None, photo_id=None):
         """Remove a foto do banco e do armazenamento."""
+
         item = self.get_object()
-        photo = get_object_or_404(ItemPhoto, pk=photo_id, item=item)
+
+        photo = get_object_or_404(
+            ItemPhoto,
+            pk=photo_id,
+            item=item,
+        )
+
         photo.image.delete(save=False)
         photo.delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -255,6 +287,7 @@ class LostReportViewSet(
     """Alertas de perda: o dono cria e mantém o alerta enquanto aberto."""
 
     queryset = LostReport.objects.select_related("owner")
+
     lookup_field = "public_code"
     permission_classes = [IsAuthenticated]
     http_method_names = ["get", "post", "put", "patch", "head", "options"]
@@ -268,16 +301,19 @@ class LostReportViewSet(
     def get_serializer_class(self):
         if self.action in {"create", "update", "partial_update"}:
             return LostReportWriteSerializer
+
         return LostReportSerializer
 
     def get_permissions(self):
         if self.action in {"update", "partial_update", "cancel"}:
             return [IsAuthenticated(), CanEditLostReport()]
+
         return [IsAuthenticated()]
 
     @transaction.atomic
     def perform_create(self, serializer):
         report = serializer.save(owner=self.request.user)
+
         # Avisa o dono do alerta se já existirem achados compatíveis.
         notification_service.notify_lost_report_matches(report)
 
@@ -290,13 +326,20 @@ class LostReportViewSet(
     @action(detail=True, methods=["post"], url_path="cancel")
     def cancel(self, request, public_code=None):
         """Marca o alerta como ``CANCELADO`` (ação do dono/admin)."""
+
         report = self.get_object()
+
         if report.status != LostReportStatus.ABERTO:
             raise ValidationError(
                 {"status": ["Apenas alertas abertos podem ser cancelados."]}
             )
+
         report.status = LostReportStatus.CANCELADO
         report.save(update_fields=["status", "updated_at"])
+
         return Response(
-            LostReportSerializer(report, context=self.get_serializer_context()).data
+            LostReportSerializer(
+                report,
+                context=self.get_serializer_context(),
+            ).data
         )

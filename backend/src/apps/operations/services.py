@@ -178,7 +178,21 @@ def transfer_to_point(
             "note": note,
         },
     )
-    notification_service.notify_custody_changed(item, point, actor=user)
+
+    # Notifica o usuário que cadastrou o objeto.
+    notification_service.notify_custody_changed(
+        item,
+        point,
+        actor=user,
+    )
+
+    # Notifica os funcionários responsáveis pelo ponto de coleta.
+    notification_service.notify_staff_custody_changed(
+        item,
+        point,
+        actor=user,
+    )
+
     return record
 
 
@@ -205,7 +219,7 @@ def submit_claim(item: FoundItem, claimant: User, message: str = "") -> Claim:
         raise InvalidClaim("Você já possui uma reivindicação pendente para este item.")
 
     try:
-        return Claim.objects.create(
+        claim = Claim.objects.create(
             item=item,
             claimant=claimant,
             message=message,
@@ -214,6 +228,17 @@ def submit_claim(item: FoundItem, claimant: User, message: str = "") -> Claim:
         raise InvalidClaim(
             "Você já possui uma reivindicação pendente para este item."
         ) from exc
+
+    # Identifica o ponto de coleta responsável pelo objeto.
+    point = current_collection_point(item)
+
+    # Notifica os funcionários sobre a nova solicitação.
+    notification_service.notify_new_claim(
+        claim,
+        point=point,
+    )
+
+    return claim
 
 
 def _reject_other_pending_claims(
@@ -249,6 +274,9 @@ def _reject_other_pending_claims(
             collection_point=current_collection_point(claim.item),
             metadata={"claim": other.pk, "reason": reason},
         )
+
+        # Notifica o usuário cuja solicitação foi rejeitada automaticamente.
+        notification_service.notify_claim_rejected(other)
 
 
 @transaction.atomic
@@ -317,7 +345,14 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
             "decision_note": decision_note,
         },
     )
-    notification_service.notify_awaiting_pickup(claim, authority, point=point)
+
+    # Notifica o usuário sobre a aprovação e liberação da retirada.
+    notification_service.notify_awaiting_pickup(
+        claim,
+        authority,
+        point=point,
+    )
+
     return claim
 
 
@@ -358,6 +393,10 @@ def reject_claim(claim: Claim, *, user: User | None, decision_note: str = "") ->
             "decision_note": decision_note,
         },
     )
+
+    # Notifica o usuário sobre a rejeição da solicitação.
+    notification_service.notify_claim_rejected(claim)
+
     return claim
 
 
@@ -403,6 +442,7 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
         .filter(token=token)
         .first()
     )
+
     if not authority:
         raise InvalidWithdrawal("QR Code de retirada inválido.")
 
@@ -446,7 +486,14 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
             "withdrawal": authority.pk,
         },
     )
-    notification_service.notify_withdrawal_confirmed(claim, authority, point=point)
+
+    # Notifica o proprietário e o autor do achado sobre a devolução.
+    notification_service.notify_withdrawal_confirmed(
+        claim,
+        authority,
+        point=point,
+    )
+
     return authority
 
 

@@ -1,6 +1,6 @@
 """Serviço de notificações do Findly.
 
-Dispara alertas por **e-mail** e **push** quando:
+Dispara alertas por **e-mail**, **push** e notificações internas quando:
 
 1. Há *match* entre um item perdido e um achado (nos dois sentidos: ao cadastrar
    o achado ou ao abrir o alerta de perda).
@@ -11,10 +11,12 @@ Dispara alertas por **e-mail** e **push** quando:
 Boas práticas adotadas:
 
 - O envio é agendado com ``transaction.on_commit``: se a transação de negócio
-  falhar, nenhum e-mail/push é disparado.
+  falhar, nenhuma notificação, e-mail ou push é disparado.
 - Falhas de entrega são registradas no log e **não** interrompem a operação.
 - O canal de push é opcional (``NOTIFICATIONS_PUSH_ENABLED``); sem provedor
   configurado ele apenas registra a mensagem no log.
+- As notificações internas são armazenadas no banco de dados e podem ser
+  consultadas pelo usuário autenticado.
 """
 
 from __future__ import annotations
@@ -259,7 +261,9 @@ def _deliver_push(message: NotificationMessage) -> None:
             subscription.mark_used()
             delivered += 1
         elif result == push_service.EXPIRED:
-            PushSubscription.objects.filter(pk=subscription.pk).update(is_active=False)
+            PushSubscription.objects.filter(pk=subscription.pk).update(
+                is_active=False
+            )
 
     logger.info(
         "Push %s: %s/%s inscrição(ões) entregues.",
@@ -285,8 +289,137 @@ def deliver(message: NotificationMessage) -> None:
         logger.exception("Falha ao enviar push %s.", message.kind)
 
 
+# ---------------------------------------------------------------------------
+# Notificações internas
+# ---------------------------------------------------------------------------
+def create_internal_notifications(
+    message: NotificationMessage,
+) -> None:
+    """Registra notificações internas dos destinatários.
+
+    As notificações são armazenadas no banco de dados independentemente
+    da disponibilidade dos canais de e-mail e Web Push.
+    """
+    from apps.notifications.models import Notification
+    from apps.users.models import User
+
+    if not message.recipients:
+        return
+
+    recipients = User.objects.filter(
+        email__in=message.recipients,
+        is_active=True,
+    )
+
+    # Evita armazenar tokens de retirada ou outras informações
+    # sensíveis presentes nos templates de e-mail.
+    internal_messages = {
+        "match": (
+            "Encontramos possíveis correspondências "
+            "para um objeto que você perdeu."
+        ),
+        "custody": (
+            "A custódia de um objeto que você registrou "
+            "foi atualizada."
+        ),
+        "awaiting_pickup": (
+            "Sua solicitação foi aprovada. "
+            "Consulte os detalhes da retirada."
+        ),
+        "withdrawal_confirmed": (
+            "A devolução do objeto foi concluída."
+        ),
+        "claim_rejected": (
+            "Sua solicitação de retirada não foi aprovada."
+        ),
+    }
+
+    body = internal_messages.get(
+        message.kind,
+        "Você possui uma nova atualização no Findly.",
+    )
+
+    notifications = [
+        Notification(
+            user=user,
+            kind=message.kind,
+            title=message.subject[:255],
+            message=body,
+        )
+        for user in recipients
+    ]
+
+    if notifications:
+        Notification.objects.bulk_create(notifications)
+
+        logger.info(
+            "Notificação interna %s registrada para %s destinatário(s).",
+            message.kind,
+            len(notifications),
+        )
+
+
+def notify_internal(
+    *,
+    users,
+    kind: str,
+    title: str,
+    message: str,
+) -> None:
+    """Agenda notificações exclusivamente internas.
+
+    Permite notificar usuários e funcionários sem disparar
+    e-mails ou mensagens de Web Push.
+
+    Os destinatários devem ser definidos pelo serviço responsável
+    pela operação.
+    """
+    user_ids = {
+        user.pk
+        for user in users
+        if user is not None and user.pk is not None
+    }
+
+    if not user_ids:
+        return
+
+    def _save() -> None:
+        from apps.notifications.models import Notification
+        from apps.users.models import User
+
+        try:
+            recipients = User.objects.filter(
+                pk__in=user_ids,
+                is_active=True,
+            )
+
+            notifications = [
+                Notification(
+                    user=user,
+                    kind=kind,
+                    title=title[:255],
+                    message=message,
+                )
+                for user in recipients
+            ]
+
+            if notifications:
+                Notification.objects.bulk_create(notifications)
+
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Falha ao registrar notificações internas do tipo %s.",
+                kind,
+            )
+
+    transaction.on_commit(_save)
+
+
 def dispatch(message: NotificationMessage) -> NotificationMessage:
     """Agenda a entrega para depois do commit da transação atual.
+
+    As notificações internas são registradas no banco de dados antes
+    do envio pelos demais canais.
 
     Com ``NOTIFICATIONS_ASYNC_ENABLED`` a entrega vai para a fila do Celery;
     se o broker estiver indisponível, cai para o envio síncrono sem quebrar a
@@ -294,6 +427,17 @@ def dispatch(message: NotificationMessage) -> NotificationMessage:
     """
 
     def _send() -> None:
+        # Registra as notificações internas apenas uma vez,
+        # antes do envio para a fila do Celery.
+        try:
+            create_internal_notifications(message)
+
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                "Falha ao registrar notificação interna %s.",
+                message.kind,
+            )
+
         if settings.NOTIFICATIONS_ASYNC_ENABLED:
             try:
                 from apps.notifications.tasks import send_notification
@@ -449,10 +593,100 @@ def notify_withdrawal_confirmed(claim, withdrawal, *, point=None) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Notificações de novas reivindicações
+# ---------------------------------------------------------------------------
+def notify_new_claim(claim, *, point=None) -> None:
+    """Avisa os funcionários responsáveis pelo ponto de coleta.
+
+    A notificação é exclusivamente interna e não é enviada
+    para funcionários de outros pontos de coleta.
+    """
+    if point is None:
+        return
+
+    operators = point.operators.filter(is_active=True)
+
+    notify_internal(
+        users=operators,
+        kind="new_claim",
+        title="Nova solicitação de retirada",
+        message=(
+            f"Uma nova solicitação foi registrada para o objeto "
+            f'"{claim.item.title}". Acesse as solicitações para analisá-la.'
+        ),
+    )
+
+
+def notify_claim_rejected(claim) -> None:
+    """Avisa o usuário que sua reivindicação não foi aprovada."""
+    notify_internal(
+        users=[claim.claimant],
+        kind="claim_rejected",
+        title="Solicitação não aprovada",
+        message=(
+            f'Sua solicitação referente ao objeto "{claim.item.title}" '
+            "não foi aprovada. Consulte os detalhes da solicitação."
+        ),
+    )
+
+
+def notify_staff_custody_changed(
+    item: FoundItem,
+    point,
+    *,
+    actor=None,
+) -> None:
+    """Avisa os funcionários responsáveis sobre a chegada de um objeto."""
+    if point is None:
+        return
+
+    operators = point.operators.filter(is_active=True)
+
+    # Evita notificar o próprio funcionário que realizou a operação.
+    if actor is not None:
+        operators = operators.exclude(pk=actor.pk)
+
+    notify_internal(
+        users=operators,
+        kind="staff_custody",
+        title="Novo objeto no ponto de coleta",
+        message=(
+            f'O objeto "{item.title}" está sob custódia '
+            f"do ponto de coleta {point.name}."
+        ),
+    )
+
+# ---------------------------------------------------------------------------
+# Notificação de novo objeto encontrado
+# ---------------------------------------------------------------------------
+def notify_staff_found_item_created(item: FoundItem) -> None:
+    """Avisa os funcionários sobre um novo objeto encontrado."""
+
+    from apps.users.models import User
+
+    operators = User.objects.filter(
+        role="operator",
+        is_active=True,
+    ).exclude(pk=item.reported_by_id)
+
+    notify_internal(
+        users=operators,
+        kind="staff_found_item_created",
+        title="Novo objeto encontrado cadastrado",
+        message=(
+            f'O objeto "{item.title}" foi registrado como encontrado. '
+            f"Código: {item.public_code}. "
+            "Acesse os itens encontrados para consultar os detalhes."
+        ),
+    )
+
 __all__ = [
     "NotificationMessage",
     "deliver",
     "dispatch",
+    "create_internal_notifications",
+    "notify_internal",
     "find_matching_found_items",
     "find_matching_lost_reports",
     "keywords",
@@ -461,4 +695,8 @@ __all__ = [
     "notify_found_item_matches",
     "notify_lost_report_matches",
     "notify_withdrawal_confirmed",
+    "notify_new_claim",
+    "notify_claim_rejected",
+    "notify_staff_custody_changed",
+    "notify_staff_found_item_created",
 ]

@@ -15,7 +15,6 @@ export const navigationMenus = {
     { label: "Início", href: "/dashboard", icon: "House", color: "text-cyan-400" },
     { label: "Cadastrar item", href: "/cadastrar-item", icon: "PlusCircle", color: "text-cyan-400" },
     { label: "Itens perdidos", href: "/itens-perdidos", icon: "Search", color: "text-red-400" },
-    { label: "Favoritos", href: "/itens-favoritos", icon: "Star", color: "text-amber-400" },
     { label: "Meus itens", href: "/meus-itens", icon: "Package", color: "text-purple-400" },
     { label: "Pontos de coleta", href: "/pontos-coleta", icon: "MapPin", color: "text-blue-400" },
   ],

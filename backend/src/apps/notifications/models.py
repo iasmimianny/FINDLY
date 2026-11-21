@@ -1,4 +1,4 @@
-"""Modelos de notificação: inscrições de Web Push por usuário."""
+"""Modelos de notificações internas e inscrições de Web Push por usuário."""
 
 from __future__ import annotations
 
@@ -42,16 +42,66 @@ class PushSubscription(models.Model):
         return f"{self.user_id} — {self.endpoint[:48]}"
 
     def as_subscription_info(self) -> dict:
-        """Formato aceito pelo ``pywebpush`` (mesmo do ``PushSubscription`` JS)."""
+        """Formato aceito pelo pywebpush."""
         return {
             "endpoint": self.endpoint,
             "keys": {"p256dh": self.p256dh, "auth": self.auth},
         }
 
     def mark_used(self) -> None:
-        """Atualiza o último uso sem disparar ``updated_at`` em cascata."""
+        """Atualiza o último uso sem disparar updated_at em cascata."""
         self.last_used_at = timezone.now()
         self.save(update_fields=["last_used_at"])
 
 
-__all__ = ["PushSubscription"]
+class Notification(models.Model):
+    """Notificação interna destinada a um usuário ou funcionário."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name="usuário",
+    )
+
+    kind = models.CharField(
+        "tipo",
+        max_length=50,
+    )
+
+    title = models.CharField(
+        "título",
+        max_length=255,
+    )
+
+    message = models.TextField("mensagem")
+
+    is_read = models.BooleanField(
+        "lida",
+        default=False,
+    )
+
+    read_at = models.DateTimeField(
+        "lida em",
+        null=True,
+        blank=True,
+    )
+
+    created_at = models.DateTimeField(
+        "criada em",
+        auto_now_add=True,
+    )
+
+    class Meta:
+        verbose_name = "notificação"
+        verbose_name_plural = "notificações"
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "is_read"]),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+__all__ = ["PushSubscription", "Notification"]
