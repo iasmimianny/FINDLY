@@ -60,10 +60,6 @@ function UpdateDetails({
           <p className="text-xs text-gray-500">
             {new Date(summary.date).toLocaleString("pt-BR")}
           </p>
-
-          <button onClick={onClose} className={button}>
-            Fechar
-          </button>
         </div>
       )}
     </FindlyModal>

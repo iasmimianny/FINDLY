@@ -22,9 +22,7 @@ import {
   X,
 } from "lucide-react";
 
-import SidebarToggle, {
-  useSidebarCollapsed,
-} from "./SidebarToggle";
+import SidebarToggle, { useSidebarCollapsed } from "./SidebarToggle";
 
 import {
   accountLinks,
@@ -120,11 +118,6 @@ export default function AppSidebar({
 
   const secondary: Entry[] = [
     {
-      label: "Meu perfil",
-      href: links.profile,
-      icon: "User",
-    },
-    {
       label: "Ajuda / FAQ",
       href: links.help,
       icon: "CircleHelp",
@@ -139,10 +132,7 @@ export default function AppSidebar({
   function renderEntry(entry: Entry) {
     const Icon = icons[entry.icon];
 
-    const active = isActiveNavigation(
-      pathname,
-      entry.href
-    );
+    const active = isActiveNavigation(pathname, entry.href);
 
     const color = entry.color ?? "text-gray-400";
 
@@ -154,8 +144,7 @@ export default function AppSidebar({
       "text-blue-400": "bg-blue-500/20",
     };
 
-    const background =
-      backgrounds[color] ?? "bg-gray-500/20";
+    const background = backgrounds[color] ?? "bg-gray-500/20";
 
     return (
       <Link
@@ -163,25 +152,13 @@ export default function AppSidebar({
         href={entry.href}
         onClick={() => setMobileOpen(false)}
         aria-label={entry.label}
-        title={
-          effectiveCollapsed
-            ? entry.label
-            : undefined
-        }
+        title={effectiveCollapsed ? entry.label : undefined}
         aria-current={active ? "page" : undefined}
         className={`flex items-center rounded-2xl py-3 text-sm font-bold not-italic transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-400 ${
-          effectiveCollapsed
-            ? "justify-center gap-0 px-2"
-            : "gap-3 px-4"
-        } ${
-          active
-            ? "bg-[#303236] text-white"
-            : "bg-[#1e2022] text-white hover:bg-gray-800"
-        }`}
+          effectiveCollapsed ? "justify-center gap-0 px-2" : "gap-3 px-4"
+        } ${active ? "bg-[#303236] text-white" : "bg-transparent text-white"}`}
       >
-        <span
-          className={`shrink-0 rounded-full p-1 ${background} ${color}`}
-        >
+        <span className={`shrink-0 rounded-full p-1 ${background} ${color}`}>
           <Icon
             className="h-[18px] w-[18px]"
             strokeWidth={2.5}
@@ -189,10 +166,7 @@ export default function AppSidebar({
           />
         </span>
 
-        <span
-          className="findly-sidebar-label"
-          aria-hidden={effectiveCollapsed}
-        >
+        <span className="findly-sidebar-label" aria-hidden={effectiveCollapsed}>
           {entry.label}
         </span>
       </Link>
@@ -228,29 +202,17 @@ export default function AppSidebar({
 
       <aside
         data-collapsed={effectiveCollapsed}
-        aria-label={
-          area === "staff"
-            ? "Menu do funcionário"
-            : "Menu principal"
-        }
+        aria-label={area === "staff" ? "Menu do funcionário" : "Menu principal"}
         inert={isMobile && !mobileOpen}
         className={`findly-sidebar fixed inset-y-0 left-0 z-[110] flex h-dvh max-w-[85vw] shrink-0 flex-col overflow-hidden border-r border-gray-800 bg-black font-sans text-white transition-[width,transform,visibility] duration-300 motion-reduce:transition-none md:sticky md:top-0 md:z-50 md:max-w-none md:visible md:translate-x-0 ${
-          mobileOpen
-            ? "visible translate-x-0"
-            : "invisible -translate-x-full"
-        } ${
-          effectiveCollapsed
-            ? "w-64 p-4 md:w-20 md:p-2"
-            : "w-64 p-4"
-        }`}
+          mobileOpen ? "visible translate-x-0" : "invisible -translate-x-full"
+        } ${effectiveCollapsed ? "w-64 p-4 md:w-20 md:p-2" : "w-64 p-4"}`}
       >
         {/* Logo e controles */}
 
         <div
           className={`flex shrink-0 items-center gap-2 pb-6 pt-2 ${
-            effectiveCollapsed
-              ? "flex-col"
-              : "justify-between"
+            effectiveCollapsed ? "flex-col" : "justify-between"
           }`}
         >
           <Link
@@ -310,9 +272,7 @@ export default function AppSidebar({
 
           <div className="my-5 border-t border-gray-800" />
 
-          <div className="space-y-2">
-            {secondary.map(renderEntry)}
-          </div>
+          <div className="space-y-2">{secondary.map(renderEntry)}</div>
 
           {!effectiveCollapsed && children}
         </nav>
@@ -320,22 +280,13 @@ export default function AppSidebar({
         {/* Logout e informações do campus */}
 
         <div className="mt-4 shrink-0 border-t border-gray-800 pt-4">
-          <form
-            action="/api/auth/logout"
-            method="post"
-          >
+          <form action="/api/auth/logout" method="post">
             <button
               type="submit"
               aria-label="Sair"
-              title={
-                effectiveCollapsed
-                  ? "Sair"
-                  : undefined
-              }
-              className={`flex w-full items-center rounded-2xl bg-[#1e2022] py-3 text-sm font-bold not-italic text-white transition-colors hover:bg-red-500/10 hover:text-red-400 focus-visible:outline-2 focus-visible:outline-cyan-400 ${
-                effectiveCollapsed
-                  ? "justify-center gap-0 px-2"
-                  : "gap-3 px-4"
+              title={effectiveCollapsed ? "Sair" : undefined}
+              className={`flex w-full items-center rounded-2xl bg-transparent py-3 text-sm font-bold not-italic text-white transition-colors hover:bg-red-500/10 hover:text-red-400 focus-visible:outline-2 focus-visible:outline-cyan-400 ${
+                effectiveCollapsed ? "justify-center gap-0 px-2" : "gap-3 px-4"
               }`}
             >
               <span className="shrink-0 rounded-full bg-red-500/20 p-1 text-red-500">
