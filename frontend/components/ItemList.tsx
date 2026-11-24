@@ -257,7 +257,7 @@ export default function ItemList({
   return (
     <PrivateLayout>
       <div className="min-h-screen bg-white font-sans text-gray-900">
-        <div className="mx-auto max-w-6xl px-5 py-8 md:px-10 md:py-10">
+        <div className="findly-page">
 
           <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
             <div>

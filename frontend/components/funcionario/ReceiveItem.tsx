@@ -71,7 +71,7 @@ function Reception({ employee }: { employee: { id: number; role: string } }) {
       if (!(reason instanceof ItemApiError) || reason.status >= 500 || reason.status < 400) setUncertain(true);
     } finally { lock.current = false; setBusy(false); setConfirming(false); }
   }
-  return <div className="mx-auto max-w-4xl text-gray-900">
+  return <div className="w-full min-w-0 text-gray-900">
     <p className="text-xs font-bold uppercase tracking-widest text-blue-600">Ponto de coleta</p><h1 className="mt-2 text-3xl font-bold">Receber item</h1><p className="mb-7 mt-3 text-sm text-gray-600">Consulte um objeto encontrado e confirme a entrega física no seu ponto de coleta.</p>
     <form onSubmit={lookup} className="rounded-2xl border border-gray-200 bg-white p-6"><label htmlFor="receive-code" className="text-sm font-semibold">Código do item encontrado</label><div className="mt-2 flex flex-wrap gap-3"><input id="receive-code" required maxLength={10} value={code} disabled={busy} autoComplete="off" placeholder="Ex.: 85X7C925S6" onChange={(event) => { setCode(event.target.value.toUpperCase()); setRecords(null); setLoadedCode(""); setSuccess(null); }} className={`${input} mt-0 min-w-0 flex-1 uppercase`} /><button disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"><Search size={17} />{busy ? "Aguarde…" : "Consultar item"}</button></div></form>
     {error && <div role="alert" className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}{expired && <Link href="/login" className="ml-2 underline">Entrar novamente</Link>}</div>}

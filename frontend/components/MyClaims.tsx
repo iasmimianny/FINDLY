@@ -36,7 +36,7 @@ export default function MyClaims() {
   const [page, setPage] = useState(1);
   const [version, setVersion] = useState(0);
   const { data, error } = useResource<ClaimPage>(`/api/items/claims/?page=${page}`, version);
-  return <PrivateLayout><main className="mx-auto max-w-5xl px-5 py-8 text-gray-900 md:px-10">
+  return <PrivateLayout><main className="findly-page text-gray-900">
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div><h1 className="text-3xl font-bold">Minhas solicitações</h1><p className="mt-3 text-sm text-gray-600">Acompanhe suas reivindicações e apresente o QR Code quando a retirada for autorizada.</p></div>
       <button onClick={() => setVersion(v => v + 1)} className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold">Atualizar lista</button>

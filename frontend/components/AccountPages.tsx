@@ -6,8 +6,8 @@ import ProfilePanel from "./ProfilePanel";
 export function ProfileContent({ area = "user" }: { area?: NavigationArea }) {
   const links = accountLinks(area);
   return <>
-    <div className="min-h-screen bg-[#F5F6F8] px-5 py-8 text-gray-900 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-5xl">
+    <div className="findly-page min-h-screen bg-[#F5F6F8] text-gray-900">
+      <div className="w-full min-w-0">
         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
           <div><p className="text-xs font-bold uppercase tracking-widest text-blue-700">Minha conta</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Meu perfil</h1><p className="mt-3 text-sm leading-6 text-gray-600">Consulte sua conta e mantenha nome e telefone atualizados.</p></div>
           <Link href={links.settings} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold hover:bg-gray-50"><Settings size={17} aria-hidden="true" />Configurações</Link>
@@ -29,8 +29,8 @@ const cardClass = "rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:
 export function SettingsContent({ area = "user" }: { area?: NavigationArea }) {
   const links = accountLinks(area);
   return <>
-    <div className="min-h-screen bg-[#F5F6F8] px-5 py-8 text-gray-900 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-5xl">
+    <div className="findly-page min-h-screen bg-[#F5F6F8] text-gray-900">
+      <div className="w-full min-w-0">
         <header className="mb-8"><p className="text-xs font-bold uppercase tracking-widest text-blue-700">Minha conta</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Configurações</h1><p className="mt-3 text-sm leading-6 text-gray-600">Atualize seus dados pessoais e acesse as opções da sua conta.</p></header>
         <section aria-label="Dados do perfil"><h2 className="mb-4 text-lg font-bold">Meu perfil</h2><ProfilePanel /></section>
         <div className="mt-6 grid items-start gap-6 sm:grid-cols-2">

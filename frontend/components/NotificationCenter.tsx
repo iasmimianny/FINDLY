@@ -468,7 +468,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto w-full min-w-0 max-w-5xl px-4 py-5 text-gray-900 sm:px-6 sm:py-8 lg:px-8">
+    <div className="findly-page text-gray-900">
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-blue-600">

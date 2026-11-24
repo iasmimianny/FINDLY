@@ -48,7 +48,7 @@ export default function FAQContent() {
   return (
     <>
       <div className="min-h-screen w-full bg-white font-sans text-gray-900">
-        <div className="mx-auto w-full max-w-6xl px-5 py-8 md:px-10 md:py-10">
+        <div className="findly-page">
           {/* Cabeçalho */}
           <div className="mb-8 w-full text-left">
             <p className="text-xs font-bold uppercase tracking-widest text-[#42a5df]">
@@ -66,7 +66,7 @@ export default function FAQContent() {
           </div>
 
           {/* Lista de perguntas */}
-          <section className={`${cardClass} mx-auto max-w-4xl`}>
+          <section className={`${cardClass} w-full`}>
             <div className="mb-5">
               <h2 className="text-lg font-bold text-gray-900">
                 Dúvidas frequentes

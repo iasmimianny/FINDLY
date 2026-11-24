@@ -49,3 +49,20 @@ body {
 }
 
 .findly-overlay { --accent: #111111; --accent-foreground: #ffffff; --focus: #06b6d4; font-family: var(--font-geist-sans), Arial, sans-serif; }
+
+/* Margens comuns das páginas internas. */
+.findly-page {
+  width: 100%;
+  min-width: 0;
+  margin-inline: 0;
+  padding: 2rem 1rem;
+}
+@media (min-width: 640px) {
+  .findly-page { padding-inline: 2rem; }
+}
+@media (min-width: 1024px) {
+  .findly-page { padding-inline: 3rem; }
+}
+
+/* A área do funcionário já recebe as margens no layout. */
+.findly-staff-content .findly-page { padding: 0; }

@@ -81,7 +81,7 @@ export default function Dashboard() {
   return <PrivateLayout>
     <div className="min-h-screen bg-[#F5F6F8] text-gray-900">
 
-      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
+      <div className="findly-page">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-700"><LayoutDashboard size={16} aria-hidden="true" />Painel inicial</p><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{data?.user.full_name.trim() ? `Olá, ${data.user.full_name.trim().split(/\s+/)[0]}!` : "Bem-vindo ao Findly!"}</h1><p className="mt-2 text-sm leading-6 text-gray-600">Acompanhe seus registros e ajude objetos a voltarem para seus donos.</p></div>
           <button onClick={reload} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"><RefreshCw size={16} className={loading ? "animate-spin" : ""} aria-hidden="true" />Atualizar painel</button>
