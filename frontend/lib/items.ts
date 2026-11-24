@@ -221,8 +221,10 @@ export function itemListPath(query: ItemQuery) {
     params.set("category", query.category);
   }
 
-  if (query.status) {
-    params.set("status", query.status);
+  // O mural de perdidos contém somente alertas ainda em aberto.
+  const status = query.kind === "lost" && !query.mine ? "ABERTO" : query.status;
+  if (status) {
+    params.set("status", status);
   }
 
   return `/api/items/${query.kind}/?${params}`;

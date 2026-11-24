@@ -138,6 +138,7 @@ function Results({
           ? "Itens encontrados"
           : "Itens perdidos"}
         {query.mine ? " por você" : ""}
+        {!query.mine && query.kind === "lost" ? " · Somente alertas em aberto" : ""}
       </p>
 
       {identityError && (
@@ -370,15 +371,16 @@ export default function ItemList({
 
                 <select
                   id="item-status"
-                  value={query.status}
+                  value={!mine && query.kind === "lost" ? "ABERTO" : query.status}
+                  disabled={!mine && query.kind === "lost"}
                   onChange={(e) =>
                     updateQuery({ status: e.target.value })
                   }
                   className={inputClass}
                 >
-                  <option value="">Todas</option>
+                  {(mine || query.kind !== "lost") && <option value="">Todas</option>}
 
-                  {statuses[query.kind].map(([value, label]) => (
+                  {statuses[query.kind].filter(([value]) => mine || query.kind !== "lost" || value === "ABERTO").map(([value, label]) => (
                     <option key={value} value={value}>
                       {label}
                     </option>
