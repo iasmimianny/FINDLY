@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
 import {
+  PanelsTopLeft,
   CircleHelp,
   Handshake,
   History,
@@ -40,6 +41,7 @@ const icons = {
   MapPin,
   Handshake,
   History,
+  PanelsTopLeft,
   CircleHelp,
   Settings,
   User,
