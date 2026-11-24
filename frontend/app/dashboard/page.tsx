@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowRight, Bell, CheckCircle2, ExternalLink, LayoutDashboard, MapPin,
-  Package, PlusCircle, RefreshCw, Search, SearchX, User,
+  Package, PlusCircle, RefreshCw, Search, SearchX,
 } from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
 import type { DashboardSummary } from "../../lib/dashboard";
@@ -79,15 +79,7 @@ export default function Dashboard() {
   function reload() { setLoading(true); setError(""); setData(null); setAttempt((value) => value + 1); }
   return <PrivateLayout>
     <div className="min-h-screen bg-[#F5F6F8] text-gray-900">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-8">
-        <form action="/itens-perdidos" className="flex w-full max-w-lg items-center gap-2">
-          <input type="hidden" name="tipo" value="found" />
-          <label htmlFor="dashboard-search" className="sr-only">Pesquisar objetos encontrados</label>
-          <input id="dashboard-search" name="busca" type="search" placeholder="Pesquisar objetos encontrados…" className="min-w-0 flex-1 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
-          <button aria-label="Buscar objetos encontrados" className="rounded-xl bg-black p-3 text-white hover:bg-gray-800"><Search size={20} aria-hidden="true" /></button>
-        </form>
-        <Link href="/perfil" aria-label="Meu perfil" className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"><User size={20} aria-hidden="true" /></Link>
-      </header>
+
       <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-700"><LayoutDashboard size={16} aria-hidden="true" />Painel inicial</p><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{data?.user.full_name.trim() ? `Olá, ${data.user.full_name.trim().split(/\s+/)[0]}!` : "Bem-vindo ao Findly!"}</h1><p className="mt-2 text-sm leading-6 text-gray-600">Acompanhe seus registros e ajude objetos a voltarem para seus donos.</p></div>
