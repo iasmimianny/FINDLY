@@ -12,7 +12,7 @@ export default function UserHeader() {
   return (
     <header className="flex min-h-[74px] shrink-0 flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 text-gray-900 md:px-5 md:py-4 lg:px-8">
 
-      {/* Notificações e perfil */}
+      {/* Notificações e configurações */}
 
       <div className="order-1 flex min-h-10 w-full shrink-0 items-center justify-end gap-3 pl-14 md:order-2 md:w-auto md:pl-0">
 
@@ -31,8 +31,8 @@ export default function UserHeader() {
         <NotificationDropdown />
 
         <Link
-          href="/perfil"
-          aria-label="Meu perfil"
+          href="/configuracao"
+          aria-label="Configurações da conta"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100"
         >
           <User size={20} aria-hidden="true" />
