@@ -15,6 +15,7 @@ import FoundItemModal from "./FoundItemModal";
 
 import {
   itemDate,
+  muralActions,
   type Item,
   type ItemKind,
 } from "../../lib/items";
@@ -22,13 +23,13 @@ import {
 type Props = {
   item: Item;
   kind: ItemKind;
-  mine: boolean;
+  viewerId?: number | string;
 };
 
 export default function ItemCard({
   item,
   kind,
-  mine,
+  viewerId,
 }: Props) {
   const [action, setAction] = useState<
     "claim" | "found" | null
@@ -42,15 +43,7 @@ export default function ItemCard({
     "ENCAMINHADO",
   ].includes(item.status);
 
-  const canReportFound =
-    !mine &&
-    kind === "lost" &&
-    item.status === "ABERTO";
-
-  const canRequestClaim =
-    !mine &&
-    kind === "found" &&
-    item.status === "EM_CUSTODIA";
+  const { own: mine, canReportFound, canRequestClaim } = muralActions(item, kind, viewerId);
 
   function handleSuccess(message: string) {
     setSuccess(message);
@@ -76,6 +69,7 @@ export default function ItemCard({
           </span>
         </div>
 
+        {mine && <p className="mt-2 text-xs font-semibold text-blue-700">Seu anúncio</p>}
         <p className="mt-2 text-xs text-gray-600">
           Código:{" "}
           <span className="font-mono font-semibold">
@@ -142,7 +136,7 @@ export default function ItemCard({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
             >
               <ClipboardCheck size={17} />
-              Solicitar retirada
+              Reivindicar item
             </button>
           </div>
         )}

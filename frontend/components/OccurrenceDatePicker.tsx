@@ -12,11 +12,12 @@ const palette = {
   "--focus": "#2563eb",
 } as CSSProperties;
 
-export default function OccurrenceDatePicker({ value, onChange, maxDate, disabled = false }: {
+export default function OccurrenceDatePicker({ value, onChange, maxDate, disabled = false, label = "Data da ocorrência" }: {
   value: string;
   onChange: (value: string) => void;
   maxDate: string;
   disabled?: boolean;
+  label?: string;
 }) {
   return (
     <I18nProvider locale="pt-BR">
@@ -35,14 +36,14 @@ export default function OccurrenceDatePicker({ value, onChange, maxDate, disable
       >
         <Label className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-700">
           <CalendarDays size={17} aria-hidden="true" />
-          Data da ocorrência
+          {label}
         </Label>
         <DateField.Group className="min-h-12 w-full rounded-xl border border-gray-200 bg-white px-4 shadow-none">
           <DateField.Input className="text-sm text-gray-800">
             {(segment) => <DateField.Segment segment={segment} />}
           </DateField.Input>
           <DateField.Suffix>
-            <DatePicker.Trigger aria-label="Abrir calendário da ocorrência" className="rounded-lg text-gray-800">
+            <DatePicker.Trigger aria-label={label === "Data da ocorrência" ? "Abrir calendário da ocorrência" : `Abrir calendário: ${label}`} className="rounded-lg text-gray-800">
               <DatePicker.TriggerIndicator>
                 <CalendarDays size={19} aria-hidden="true" />
               </DatePicker.TriggerIndicator>
@@ -52,8 +53,8 @@ export default function OccurrenceDatePicker({ value, onChange, maxDate, disable
         <FieldError className="mt-1 text-sm text-red-700">
           Escolha uma data válida, até hoje.
         </FieldError>
-        <DatePicker.Popover placement="bottom start" style={{ ...palette, width: "min(20rem, calc(100vw - 2rem))", maxWidth: "calc(100vw - 2rem)", boxSizing: "border-box" }} className="rounded-2xl border border-gray-200 bg-white p-3 text-gray-900 shadow-lg">
-          <Calendar aria-label="Data da ocorrência" maxValue={parseDate(maxDate)} style={{ width: "100%", maxWidth: "none" }}>
+        <DatePicker.Popover placement="bottom start" style={{ ...palette, width: "min(20rem, calc(100vw - 2rem))", maxWidth: "calc(100vw - 2rem)", boxSizing: "border-box" }} className="z-[150] rounded-2xl border border-gray-200 bg-white p-3 text-gray-900 shadow-lg">
+          <Calendar aria-label={label} maxValue={parseDate(maxDate)} style={{ width: "100%", maxWidth: "none" }}>
             <Calendar.Header>
               <Calendar.NavButton slot="previous" aria-label="Mês anterior" />
               <Calendar.Heading className="text-center" />

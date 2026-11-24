@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from "react";
 import FindlyModal from "../FindlyModal";
+import OccurrenceDatePicker from "../OccurrenceDatePicker";
+import { Button } from "@heroui/react";
 
 import {
   createFoundItem,
@@ -90,7 +92,7 @@ export default function FoundItemModal({
       }
 
       onSuccess(
-        "Objeto encontrado cadastrado! Entregue-o a um ponto de coleta do Findly."
+        "Objeto encontrado cadastrado! Entregue-o a um ponto de coleta do Findly. O alerta de perda continua aberto."
       );
     } catch (reason) {
       setError(
@@ -109,8 +111,9 @@ export default function FoundItemModal({
       title="Encontrei este item"
       onClose={onClose}
       busy={sending}
+      size="lg"
     >
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className="mb-2 block text-sm font-semibold">
             Nome do objeto
@@ -135,7 +138,7 @@ export default function FoundItemModal({
           />
         </div>
 
-        <div>
+        <div className="min-w-0 sm:col-span-2">
           <label className="mb-2 block text-sm font-semibold">
             Descrição *
           </label>
@@ -166,23 +169,17 @@ export default function FoundItemModal({
           />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-semibold">
-            Data em que encontrou *
-          </label>
-
-          <input
-            required
-            type="date"
-            max={today}
+        <div className="min-w-0">
+          <OccurrenceDatePicker
+            label="Data em que encontrou"
             value={date}
+            onChange={setDate}
+            maxDate={today}
             disabled={sending}
-            onChange={(e) => setDate(e.target.value)}
-            className={inputClass}
           />
         </div>
 
-        <div>
+        <div className="min-w-0 sm:col-span-2">
           <label className="mb-2 block text-sm font-semibold">
             Foto do objeto (opcional)
           </label>
@@ -216,34 +213,36 @@ export default function FoundItemModal({
           </p>
         </div>
 
-        <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800">
-          Após o cadastro, entregue o objeto a um ponto
-          de coleta do Findly.
+        <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800 sm:col-span-2">
+          Você está registrando um objeto encontrado que pode corresponder a este anúncio.
+          Depois, entregue-o a um ponto de coleta do Findly para o funcionário registrar o recebimento.
+          O alerta de perda continuará aberto; este cadastro não confirma a propriedade do objeto.
         </p>
 
         {error && (
-          <p role="alert" className="text-sm text-red-600">
+          <p role="alert" className="text-sm text-red-600 sm:col-span-2">
             {error}
           </p>
         )}
 
-        <div className="flex justify-end gap-3">
-          <button
+        <div className="flex flex-wrap justify-end gap-3 pt-2 sm:col-span-2">
+          <Button
             type="button"
-            disabled={sending}
-            onClick={onClose}
+            variant="secondary"
+            isDisabled={sending}
+            onPress={onClose}
             className="rounded-xl border px-4 py-3 text-sm"
           >
             Cancelar
-          </button>
+          </Button>
 
-          <button
+          <Button
             type="submit"
-            disabled={sending}
+            isDisabled={sending}
             className="rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {sending ? "Enviando..." : "Confirmar cadastro"}
-          </button>
+          </Button>
         </div>
       </form>
     </FindlyModal>

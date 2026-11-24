@@ -9,12 +9,14 @@ export default function FindlyModal({
   title,
   children,
   busy = false,
+  size = "md",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   busy?: boolean;
+  size?: "md" | "lg";
 }) {
   return (
     <Modal
@@ -30,11 +32,11 @@ export default function FindlyModal({
       >
         <Modal.Container
           placement="center"
-          size="md"
+          size={size}
           scroll="inside"
           className="p-3 sm:p-6"
         >
-          <Modal.Dialog className="findly-overlay w-full min-w-0 max-w-md max-h-[90dvh] rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-xl">
+          <Modal.Dialog className={`findly-overlay w-full min-w-0 max-h-[90dvh] rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-xl ${size === "lg" ? "max-w-2xl" : "max-w-md"}`}>
 
             {!busy && (
               <Modal.CloseTrigger aria-label="Fechar janela" />

@@ -114,6 +114,7 @@ export const config = {
     "/faq/:path*",
     "/configuracao/:path*",
     "/meus-itens/:path*",
+    "/minhas-solicitacoes/:path*",
     "/pontos-coleta/:path*",
     "/itens-favoritos/:path*",
     "/itens-perdidos/:path*",

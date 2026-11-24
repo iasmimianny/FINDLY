@@ -266,6 +266,7 @@ export async function proxyItems(
 
     if (isClaimRoute && request.method === "GET") {
       params.set("ordering", "-created_at");
+      params.set("mine", "true");
     }
 
     const target = itemTarget(segments);

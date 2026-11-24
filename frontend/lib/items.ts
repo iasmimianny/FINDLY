@@ -57,6 +57,17 @@ export type Item = {
   created_at: string;
 };
 
+export function muralActions(item: Item, kind: ItemKind, viewerId?: number | string) {
+  const author = kind === "lost" ? item.owner : item.reported_by;
+  const identified = viewerId !== undefined && viewerId !== null && author?.id != null;
+  const own = identified && String(author.id) === String(viewerId);
+  return {
+    own,
+    canReportFound: identified && !own && kind === "lost" && item.status === "ABERTO",
+    canRequestClaim: identified && !own && kind === "found" && item.status === "EM_CUSTODIA",
+  };
+}
+
 export type ItemPage = {
   count: number;
   next: string | null;

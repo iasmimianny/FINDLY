@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import FindlyModal from "../FindlyModal";
+import Link from "next/link";
 import { createClaim, type Item } from "../../lib/items";
 
 type Props = {
@@ -52,7 +53,7 @@ export default function ClaimModal({
   return (
     <FindlyModal
       open
-      title="Solicitar retirada"
+      title="Reivindicar item"
       onClose={onClose}
       busy={sending}
     >
@@ -94,6 +95,8 @@ export default function ClaimModal({
           Após a aprovação, você receberá uma autorização
           de retirada.
         </p>
+
+        <Link href="/minhas-solicitacoes" className="block text-sm font-semibold text-blue-700 underline">Acompanhar em Minhas solicitações</Link>
 
         {error && (
           <p role="alert" className="text-sm text-red-600">

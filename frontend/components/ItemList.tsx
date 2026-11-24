@@ -6,7 +6,10 @@ import { Package, Plus, Search } from "lucide-react";
 
 import PrivateLayout from "../app/components/funcionario/PrivateLayout";
 import FindlyLoading from "./FindlyLoading";
+import { useResource } from "./funcionario/StaffUI";
+import type { Profile } from "../lib/profile";
 import ItemCard from "./items/ItemCard";
+import CreateItemButton from "./CreateItemButton";
 
 import { finishLoadingCycle } from "../lib/loading-cycle";
 
@@ -37,6 +40,7 @@ function Results({
   query: ItemQuery;
   onPage: (page: number) => void;
 }) {
+  const { data: viewer, error: identityError } = useResource<Profile>("/api/account/me/");
   const [result, setResult] = useState<ItemPage | null>(null);
   const [error, setError] = useState("");
   const [expired, setExpired] = useState(false);
@@ -136,6 +140,11 @@ function Results({
         {query.mine ? " por você" : ""}
       </p>
 
+      {identityError && (
+        <p role="alert" className="mb-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+          Não foi possível confirmar sua conta. Recarregue a página para liberar as ações dos anúncios.
+        </p>
+      )}
       {result.results.length ? (
         <div className="space-y-4">
           {result.results.map((item) => (
@@ -143,7 +152,7 @@ function Results({
               key={`${query.kind}-${item.public_code}`}
               item={item}
               kind={query.kind}
-              mine={query.mine}
+              viewerId={viewer?.id}
             />
           ))}
         </div>
@@ -202,10 +211,12 @@ export default function ItemList({
   mine = false,
   initialKind = "lost",
   initialSearch = "",
+  initialCreate = false,
 }: {
   mine?: boolean;
   initialKind?: ItemKind;
   initialSearch?: string;
+  initialCreate?: boolean;
 }) {
   const [query, setQuery] = useState<ItemQuery>({
     kind: initialKind,
@@ -217,6 +228,7 @@ export default function ItemList({
   });
 
   const [search, setSearch] = useState(initialSearch);
+  const [revision, setRevision] = useState(0);
 
   function updateQuery(changes: Partial<ItemQuery>) {
     setQuery((previous) => ({
@@ -253,7 +265,7 @@ export default function ItemList({
               </p>
 
               <h1 className="mt-2 text-3xl font-bold tracking-tight md:text-4xl">
-                {mine ? "Meus itens cadastrados" : "Buscar itens"}
+                {mine ? "Meus itens cadastrados" : "Mural de achados e perdidos"}
               </h1>
 
               <p className="mt-3 max-w-xl text-sm leading-6 text-gray-600">
@@ -263,10 +275,10 @@ export default function ItemList({
               </p>
             </div>
 
-            <Link href="/cadastrar-item" className={primaryButton}>
+            <CreateItemButton className={primaryButton} initiallyOpen={initialCreate} onCreated={() => setRevision(v => v + 1)}>
               <Plus size={17} />
               Cadastrar item
-            </Link>
+            </CreateItemButton>
           </header>
 
           <div
@@ -392,7 +404,7 @@ export default function ItemList({
           </form>
 
           <Results
-            key={JSON.stringify(query)}
+            key={`${JSON.stringify(query)}-${revision}`}
             query={query}
             onPage={(page) => updateQuery({ page })}
           />

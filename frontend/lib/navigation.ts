@@ -13,8 +13,8 @@ export function staffAccountRedirect(pathname: string, role: string) {
 export const navigationMenus = {
   user: [
     { label: "Início", href: "/dashboard", icon: "House", color: "text-cyan-400" },
-    { label: "Cadastrar item", href: "/cadastrar-item", icon: "PlusCircle", color: "text-cyan-400" },
-    { label: "Itens perdidos", href: "/itens-perdidos", icon: "Search", color: "text-red-400" },
+    { label: "Mural", href: "/itens-perdidos", icon: "Search", color: "text-red-400" },
+    { label: "Minhas solicitações", href: "/minhas-solicitacoes", icon: "Handshake", color: "text-blue-400" },
     { label: "Meus itens", href: "/meus-itens", icon: "Package", color: "text-purple-400" },
     { label: "Pontos de coleta", href: "/pontos-coleta", icon: "MapPin", color: "text-blue-400" },
   ],
