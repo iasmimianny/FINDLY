@@ -29,6 +29,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 # ===========================================================================
 # 1. Caminhos base
@@ -51,6 +52,12 @@ if _env_file.exists():
 # ===========================================================================
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-change-me")
 DEBUG = env.bool("DJANGO_DEBUG", default=True)
+if not DEBUG and SECRET_KEY in {
+    "",
+    "insecure-dev-key-change-me",
+    "gere-uma-chave-aleatoria-longa-e-unica",
+}:
+    raise ImproperlyConfigured("Defina DJANGO_SECRET_KEY antes de iniciar em produção.")
 ALLOWED_HOSTS = env.list(
     "DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "0.0.0.0"]
 )

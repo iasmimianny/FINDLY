@@ -32,6 +32,8 @@ export async function POST(request: NextRequest) {
         password: dados.password,
       }),
       cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.timeout(10000),
     });
 
     const resultado = await resposta.json();

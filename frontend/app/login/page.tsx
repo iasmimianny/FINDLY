@@ -293,6 +293,7 @@ export default function Login() {
 
                 <p className="mt-3 text-right text-sm text-gray-500">
                   <Link href="/recuperar-senha" className="underline">Esqueceu sua senha?</Link>
+                  <Link href="/reenviar-verificacao" className="underline">Reenviar verificação de e-mail</Link>
                 </p>
               </div>
 

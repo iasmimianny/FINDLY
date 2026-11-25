@@ -61,7 +61,7 @@ def test_full_owner_operator_and_admin_journey(
         format="json",
     )
     assert approved.status_code == 200
-    assert approved.data["withdrawal"]["qr_image"]
+    assert approved.data["withdrawal"]["token"] is None
     own = other_client.get(reverse("operations:claim-detail", args=[claim_id]))
     authority = own.data["withdrawal"]
     assert authority["is_valid"]

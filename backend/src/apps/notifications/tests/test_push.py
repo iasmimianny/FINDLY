@@ -32,7 +32,7 @@ def _message(user, kind="match") -> notification_service.NotificationMessage:
 def _subscription(user, **overrides) -> PushSubscription:
     data = {
         "user": user,
-        "endpoint": "https://push.example.com/subscriptions/abc",
+        "endpoint": "https://fcm.googleapis.com/subscriptions/abc",
         "p256dh": "p" * 40,
         "auth": "a" * 20,
     }

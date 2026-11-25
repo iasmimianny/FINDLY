@@ -261,9 +261,7 @@ def _deliver_push(message: NotificationMessage) -> None:
             subscription.mark_used()
             delivered += 1
         elif result == push_service.EXPIRED:
-            PushSubscription.objects.filter(pk=subscription.pk).update(
-                is_active=False
-            )
+            PushSubscription.objects.filter(pk=subscription.pk).update(is_active=False)
 
     logger.info(
         "Push %s: %s/%s inscrição(ões) entregues.",
@@ -315,23 +313,14 @@ def create_internal_notifications(
     # sensíveis presentes nos templates de e-mail.
     internal_messages = {
         "match": (
-            "Encontramos possíveis correspondências "
-            "para um objeto que você perdeu."
+            "Encontramos possíveis correspondências " "para um objeto que você perdeu."
         ),
-        "custody": (
-            "A custódia de um objeto que você registrou "
-            "foi atualizada."
-        ),
+        "custody": ("A custódia de um objeto que você registrou " "foi atualizada."),
         "awaiting_pickup": (
-            "Sua solicitação foi aprovada. "
-            "Consulte os detalhes da retirada."
+            "Sua solicitação foi aprovada. " "Consulte os detalhes da retirada."
         ),
-        "withdrawal_confirmed": (
-            "A devolução do objeto foi concluída."
-        ),
-        "claim_rejected": (
-            "Sua solicitação de retirada não foi aprovada."
-        ),
+        "withdrawal_confirmed": ("A devolução do objeto foi concluída."),
+        "claim_rejected": ("Sua solicitação de retirada não foi aprovada."),
     }
 
     body = internal_messages.get(
@@ -374,11 +363,7 @@ def notify_internal(
     Os destinatários devem ser definidos pelo serviço responsável
     pela operação.
     """
-    user_ids = {
-        user.pk
-        for user in users
-        if user is not None and user.pk is not None
-    }
+    user_ids = {user.pk for user in users if user is not None and user.pk is not None}
 
     if not user_ids:
         return
@@ -657,6 +642,7 @@ def notify_staff_custody_changed(
         ),
     )
 
+
 # ---------------------------------------------------------------------------
 # Notificação de novo objeto encontrado
 # ---------------------------------------------------------------------------
@@ -680,6 +666,7 @@ def notify_staff_found_item_created(item: FoundItem) -> None:
             "Acesse os itens encontrados para consultar os detalhes."
         ),
     )
+
 
 __all__ = [
     "NotificationMessage",

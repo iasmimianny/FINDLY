@@ -23,6 +23,7 @@ class AuditAction(models.TextChoices):
     CLAIM_REJECTED = "CLAIM_REJECTED", "Reivindicação recusada"
     CLAIM_CANCELLED = "CLAIM_CANCELLED", "Reivindicação cancelada"
     WITHDRAWAL_CONFIRMED = "WITHDRAWAL_CONFIRMED", "Retirada confirmada"
+    WITHDRAWAL_REISSUED = "WITHDRAWAL_REISSUED", "Autorização de retirada reemitida"
 
 
 class AuditEvent(models.Model):

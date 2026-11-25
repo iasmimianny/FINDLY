@@ -10,7 +10,7 @@ function moduleFrom(file) {
   const source=fs.readFileSync(path.resolve(__dirname,"..",file),"utf8");
   const compiled=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2017}}).outputText;
   const loaded={exports:{}};
-  const requireLocal=(name)=>name==="./lib/navigation"?navigation:requireFrontend(name);
+  const requireLocal=(name)=>name==="./lib/navigation"?navigation:name==="./lib/session-refresh"?requireFrontend("./lib/session-refresh.ts"):requireFrontend(name);
   new Function("require","module","exports",compiled)(requireLocal,loaded,loaded.exports);
   return loaded.exports;
 }
@@ -51,4 +51,21 @@ test("expired sessions redirect to login and unavailable identity never selects 
 test("renewed cookies are preserved when a legacy profile redirects to staff",async()=>{
   let count=0;global.fetch=async(url)=>{count++;if(url.endsWith("/refresh/"))return Response.json({access:"new-access",refresh:"new-refresh"});return count===1?Response.json({},{status:401}):Response.json({role:"operator"});};
   const response=await proxy(request("/perfil","findly_access=old; findly_refresh=refresh"));assert.equal(response.status,303);assert.equal(count,3);assert(response.headers.get("set-cookie").includes("new-refresh"));
+});
+
+test("concurrent requests share one refresh and read independent responses", async () => {
+  const { refreshSession } = requireFrontend("./lib/session-refresh.ts");
+  const previous = global.fetch;
+  let resolve;
+  let calls = 0;
+  global.fetch = () => { calls += 1; return new Promise((done) => { resolve = done; }); };
+  try {
+    const first = refreshSession("http://localhost:8000", "parallel-test");
+    const second = refreshSession("http://localhost:8000", "parallel-test");
+    assert.equal(calls, 1);
+    resolve(Response.json({ access: "new-access", refresh: "new-refresh" }));
+    assert.deepEqual(await (await first).json(), await (await second).json());
+  } finally {
+    global.fetch = previous;
+  }
 });

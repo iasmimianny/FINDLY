@@ -5,7 +5,7 @@ from __future__ import annotations
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from apps.items.models import FoundItem
+from apps.items.models import FoundItem, ItemStatus
 from apps.users.models import User
 
 from .models import (
@@ -122,7 +122,8 @@ class WithdrawalSerializer(serializers.ModelSerializer):
     """Autorização de retirada exposta ao reivindicante/operador."""
 
     is_valid = serializers.BooleanField(read_only=True)
-    qr_image = serializers.SerializerMethodField()
+    token = serializers.SerializerMethodField()
+    can_reissue = serializers.SerializerMethodField()
 
     class Meta:
         model = WithdrawalAuthority
@@ -132,17 +133,29 @@ class WithdrawalSerializer(serializers.ModelSerializer):
             "expires_at",
             "used_at",
             "is_valid",
-            "qr_image",
+            "can_reissue",
             "created_at",
         )
         read_only_fields = fields
 
-    def get_qr_image(self, obj: WithdrawalAuthority) -> str | None:
-        if not obj.qr_image:
-            return None
+    def get_can_reissue(self, obj: WithdrawalAuthority) -> bool:
+        return (
+            obj.used_at is None
+            and obj.is_expired
+            and obj.claim.item.status == ItemStatus.AGUARDANDO_RETIRADA
+        )
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_token(self, obj: WithdrawalAuthority) -> str | None:
         request = self.context.get("request")
-        url = obj.qr_image.url
-        return request.build_absolute_uri(url) if request else url
+        if (
+            request is not None
+            and request.user.pk == obj.claim.claimant_id
+            and obj.is_valid
+            and obj.claim.item.status == ItemStatus.AGUARDANDO_RETIRADA
+        ):
+            return obj.token
+        return None
 
 
 class ClaimSerializer(serializers.ModelSerializer):

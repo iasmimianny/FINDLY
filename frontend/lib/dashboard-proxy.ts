@@ -1,3 +1,4 @@
+import { refreshSession } from "./session-refresh";
 import { NextRequest, NextResponse } from "next/server";
 import type { DashboardRecord, DashboardSummary } from "./dashboard";
 import type { Item, ItemPage, ItemKind } from "./items";
@@ -88,10 +89,7 @@ export async function dashboardResponse(request: NextRequest) {
     try { data = await summary(); }
     catch (error) {
       if (!(error instanceof DashboardError) || error.status !== 401 || !refresh) throw error;
-      const response = await fetch(`${API_URL}/api/auth/refresh/`, {
-        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ refresh }), cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000),
-      });
+      const response = await refreshSession(API_URL, refresh);
       if ([400, 401, 403].includes(response.status)) throw new DashboardError(401);
       if (!response.ok) throw new DashboardError(502);
       const tokens = await response.json();

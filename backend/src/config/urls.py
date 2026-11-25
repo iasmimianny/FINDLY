@@ -9,6 +9,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.http import HttpResponseNotFound
 from django.urls import include, path
 from drf_spectacular.views import (
     SpectacularAPIView,
@@ -57,4 +58,10 @@ urlpatterns = [
 
 # Servir arquivos de mídia em desenvolvimento.
 if settings.DEBUG:
+    urlpatterns += [
+        path(
+            f"{settings.MEDIA_URL.lstrip('/')}qrcodes/withdrawals/<path:filename>",
+            lambda request, filename: HttpResponseNotFound(),
+        ),
+    ]
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

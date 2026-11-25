@@ -10,7 +10,7 @@ function loadModule(name) {
   const source = fs.readFileSync(path.resolve(__dirname, "../lib", name), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText;
   const loaded = { exports: {} };
-  new Function("require", "module", "exports", compiled)(requireFrontend, loaded, loaded.exports);
+  new Function("require", "module", "exports", compiled)((name) => name.endsWith("/session-refresh") ? requireFrontend("./lib/session-refresh.ts") : requireFrontend(name), loaded, loaded.exports);
   return loaded.exports;
 }
 const { custodyResponse, custodyTarget, validCustodyInput } = loadModule("custody-proxy.ts");

@@ -1,3 +1,4 @@
+import { refreshSession } from "./lib/session-refresh";
 import { staffAccountRedirect } from "./lib/navigation";
 ﻿import { NextResponse, type NextRequest } from "next/server";
 
@@ -50,13 +51,7 @@ export async function proxy(request: NextRequest) {
       const refresh = request.cookies.get("findly_refresh")?.value;
       if (!refresh) return login();
 
-      const response = await fetch(`${API_URL}/api/auth/refresh/`, {
-        ...fetchOptions,
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-        signal: AbortSignal.timeout(5000),
-      });
+      const response = await refreshSession(API_URL, refresh);
       if (rejected(response.status) || response.status === 400) return login();
       if (response.status !== 200) return unavailable();
 

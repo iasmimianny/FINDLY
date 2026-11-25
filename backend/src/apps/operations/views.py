@@ -50,6 +50,7 @@ from .services import (
     approve_claim,
     cancel_claim,
     confirm_withdrawal,
+    reissue_withdrawal,
     reject_claim,
     submit_claim,
     transfer_to_point,
@@ -259,7 +260,7 @@ class ClaimViewSet(
     ordering = ["-created_at", "-id"]
 
     def get_permissions(self):
-        if self.action in {"approve", "reject"}:
+        if self.action in {"approve", "reject", "reissue"}:
             return [IsOperatorOrAdmin()]
         if self.action == "cancel":
             return [IsAuthenticated(), IsClaimantOrAdmin()]
@@ -279,7 +280,7 @@ class ClaimViewSet(
         return queryset.filter(claimant=user)
 
     def get_serializer_class(self):
-        if self.action in {"approve", "reject"}:
+        if self.action in {"approve", "reject", "reissue"}:
             return ClaimDecisionSerializer
         return ClaimSerializer
 
@@ -325,6 +326,26 @@ class ClaimViewSet(
         except InvalidClaim as exc:
             raise _validation_error(exc) from exc
 
+        return Response(ClaimSerializer(claim, context={"request": request}).data)
+
+    @extend_schema(
+        tags=["operations"],
+        summary="Reemitir autorização de retirada vencida",
+        request=ClaimDecisionSerializer,
+        responses={200: ClaimSerializer},
+    )
+    @action(detail=True, methods=["post"])
+    def reissue(self, request, pk=None):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            claim = reissue_withdrawal(
+                self.get_object(),
+                user=request.user,
+                decision_note=serializer.validated_data.get("decision_note", ""),
+            )
+        except InvalidWithdrawal as exc:
+            raise _validation_error(exc) from exc
         return Response(ClaimSerializer(claim, context={"request": request}).data)
 
     @extend_schema(

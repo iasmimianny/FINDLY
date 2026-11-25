@@ -1,3 +1,4 @@
+import { refreshSession } from "./session-refresh";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = (
@@ -302,20 +303,7 @@ export async function proxyItems(
         );
       }
 
-      const renewed = await fetch(
-        `${API_URL}/api/auth/refresh/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({ refresh }),
-          cache: "no-store",
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        }
-      );
+      const renewed = await refreshSession(API_URL, refresh);
 
       if ([400, 401, 403].includes(renewed.status)) {
         return NextResponse.json(

@@ -87,11 +87,10 @@ export type ItemQuery = {
 // Autorização de retirada gerada após a aprovação.
 export type Withdrawal = {
   id: number;
-  token: string;
+  token: string | null;
   expires_at: string;
   used_at: string | null;
   is_valid: boolean;
-  qr_image: string | null;
   created_at: string;
 };
 

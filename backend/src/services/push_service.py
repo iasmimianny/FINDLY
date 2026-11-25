@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+from urllib.parse import urlsplit
 
 from django.conf import settings
 
@@ -46,6 +47,23 @@ def is_configured() -> bool:
     )
 
 
+def is_supported_endpoint(endpoint: str) -> bool:
+    try:
+        dest = urlsplit(endpoint)
+        return (
+            dest.scheme == "https"
+            and dest.netloc.lower()
+            in {
+                "fcm.googleapis.com",
+                "updates.push.services.mozilla.com",
+                "web.push.apple.com",
+            }
+            and bool(dest.path.strip("/"))
+        )
+    except ValueError:
+        return False
+
+
 def send(subscription_info: dict, payload: dict) -> str:
     """Entrega uma notificação a uma inscrição.
 
@@ -61,6 +79,9 @@ def send(subscription_info: dict, payload: dict) -> str:
             "Push habilitado sem VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY; ignorado."
         )
         return SKIPPED
+
+    if not is_supported_endpoint(subscription_info.get("endpoint", "")):
+        return FAILED
 
     try:
         webpush(

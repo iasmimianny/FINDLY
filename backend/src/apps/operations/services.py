@@ -27,7 +27,7 @@ from apps.items.models import FoundItem, ItemStatus, LostReport, LostReportStatu
 from apps.items.services import transition_found_item
 from apps.users.models import User
 from services import notification_service
-from services.qrcode_service import build_qr_png, extract_withdrawal_token
+from services.qrcode_service import extract_withdrawal_token
 
 from .models import (
     WITHDRAWAL_TTL,
@@ -36,6 +36,7 @@ from .models import (
     CollectionPoint,
     CustodyRecord,
     WithdrawalAuthority,
+    generate_withdrawal_token,
 )
 
 
@@ -120,6 +121,15 @@ def _close_active_custody(item: FoundItem, *, when=None, note: str = "") -> None
     if note:
         record.note = note
     record.save(update_fields=["ended_at", "note"])
+
+
+def close_item_operations(item: FoundItem, *, note: str) -> int:
+    """Close custody and pending claims while the caller holds the item lock."""
+    _close_active_custody(item, note=note)
+    pending = list(Claim.objects.filter(item=item, status=ClaimStatus.PENDING))
+    for claim in pending:
+        reject_claim(claim, user=None, decision_note=note)
+    return len(pending)
 
 
 @transaction.atomic
@@ -297,15 +307,21 @@ def _reject_other_pending_claims(
         notification_service.notify_claim_rejected(other)
 
 
+def _lock_claim(claim: Claim) -> tuple[FoundItem, Claim]:
+    item = FoundItem.objects.select_for_update().get(pk=claim.item_id)
+    locked = Claim.objects.select_for_update().get(pk=claim.pk)
+    locked.item = item
+    return item, locked
+
+
 @transaction.atomic
 def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim:
     """Aprova o claim, coloca o item em ``AGUARDANDO_RETIRADA`` e emite o QR."""
-    claim = Claim.objects.select_for_update().select_related("item").get(pk=claim.pk)
+    item, claim = _lock_claim(claim)
     if claim.status != ClaimStatus.PENDING:
         raise InvalidClaim("Apenas reivindicações pendentes podem ser aprovadas.")
 
-    item = FoundItem.objects.select_for_update().get(pk=claim.item_id)
-    if item.status not in {ItemStatus.EM_CUSTODIA, ItemStatus.AGUARDANDO_RETIRADA}:
+    if item.status != ItemStatus.EM_CUSTODIA:
         raise InvalidClaim(
             "O item precisa estar em custódia de um ponto de coleta para ser entregue."
         )
@@ -314,8 +330,7 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
     previous_status = item.status
     now = timezone.now()
 
-    if item.status == ItemStatus.EM_CUSTODIA:
-        item = transition_found_item(item, ItemStatus.AGUARDANDO_RETIRADA, user=user)
+    item = transition_found_item(item, ItemStatus.AGUARDANDO_RETIRADA, user=user)
 
     claim.status = ClaimStatus.APPROVED
     claim.reviewed_by = user
@@ -335,11 +350,6 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
         claim=claim,
         expires_at=now + WITHDRAWAL_TTL,
         created_by=user,
-    )
-    authority.qr_image.save(
-        f"{authority.token}.png",
-        build_qr_png(authority.token),
-        save=True,
     )
 
     _reject_other_pending_claims(
@@ -381,13 +391,11 @@ def reject_claim(claim: Claim, *, user: User | None, decision_note: str = "") ->
 
     ``user`` pode ser ``None`` quando a recusa é automática (expiração do item).
     """
-    claim = Claim.objects.select_for_update().select_related("item").get(pk=claim.pk)
+    item, claim = _lock_claim(claim)
     if claim.status != ClaimStatus.PENDING:
         raise InvalidClaim("Apenas reivindicações pendentes podem ser recusadas.")
 
     if user is not None:
-        # Mesma ordem de bloqueio usada na aprovação/retirada.
-        item = FoundItem.objects.select_for_update().get(pk=claim.item_id)
         require_point_responsibility(item, user)
 
     claim.status = ClaimStatus.REJECTED
@@ -427,7 +435,7 @@ def reject_claim(claim: Claim, *, user: User | None, decision_note: str = "") ->
 @transaction.atomic
 def cancel_claim(claim: Claim, *, user: User) -> Claim:
     """Cancela o próprio claim enquanto ele está pendente."""
-    claim = Claim.objects.select_for_update().select_related("item").get(pk=claim.pk)
+    _, claim = _lock_claim(claim)
 
     if claim.claimant_id != user.pk and not user.is_admin:
         raise InvalidClaim("Apenas o autor do claim pode cancelá-lo.")
@@ -454,20 +462,61 @@ def cancel_claim(claim: Claim, *, user: User) -> Claim:
 # Retirada
 # ---------------------------------------------------------------------------
 @transaction.atomic
+def reissue_withdrawal(claim: Claim, *, user: User, decision_note: str = "") -> Claim:
+    item, claim = _lock_claim(claim)
+    require_point_responsibility(item, user)
+    if (
+        claim.status != ClaimStatus.APPROVED
+        or item.status != ItemStatus.AGUARDANDO_RETIRADA
+    ):
+        raise InvalidWithdrawal("O item precisa estar aguardando retirada.")
+
+    authority = (
+        WithdrawalAuthority.objects.select_for_update().filter(claim=claim).first()
+    )
+    if authority is None or authority.used_at is not None or not authority.is_expired:
+        raise InvalidWithdrawal(
+            "Só uma autorização vencida e sem uso pode ser reemitida."
+        )
+
+    authority.token = generate_withdrawal_token()
+    authority.expires_at = timezone.now() + WITHDRAWAL_TTL
+    authority.save(update_fields=["token", "expires_at"])
+    item.save(update_fields=["updated_at"])
+    point = current_collection_point(item)
+    record_event(
+        item=item,
+        action=AuditAction.WITHDRAWAL_REISSUED,
+        user=user,
+        previous_status=item.status,
+        new_status=item.status,
+        collection_point=point,
+        metadata={"withdrawal": authority.pk, "decision_note": decision_note},
+    )
+    notification_service.notify_awaiting_pickup(claim, authority, point=point)
+    return claim
+
+
+@transaction.atomic
 def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
     """Valida o QR Code e conclui a retirada (uso único)."""
     token = extract_withdrawal_token(raw_token)
     if not token:
         raise InvalidWithdrawal("Informe o token do QR Code de retirada.")
 
-    authority = (
-        WithdrawalAuthority.objects.select_for_update()
-        .select_related("claim__item")
-        .filter(token=token)
+    item_id = (
+        WithdrawalAuthority.objects.filter(token=token)
+        .values_list("claim__item_id", flat=True)
         .first()
     )
+    if item_id is None:
+        raise InvalidWithdrawal("QR Code de retirada inválido.")
 
-    if not authority:
+    item = FoundItem.objects.select_for_update().get(pk=item_id)
+    authority = (
+        WithdrawalAuthority.objects.select_for_update().filter(token=token).first()
+    )
+    if authority is None:
         raise InvalidWithdrawal("QR Code de retirada inválido.")
     if authority.used_at is not None:
         raise InvalidWithdrawal("Este QR Code já foi utilizado.")
@@ -480,7 +529,6 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
     if claim.status != ClaimStatus.APPROVED:
         raise InvalidWithdrawal("A reivindicação vinculada não está aprovada.")
 
-    item = FoundItem.objects.select_for_update().get(pk=claim.item_id)
     if item.status != ItemStatus.AGUARDANDO_RETIRADA:
         raise InvalidWithdrawal("O item não está aguardando retirada neste momento.")
 

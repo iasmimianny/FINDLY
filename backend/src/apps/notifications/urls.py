@@ -5,12 +5,12 @@ from __future__ import annotations
 from django.urls import path
 
 from .views import (
+    NotificationListView,
+    NotificationReadAllView,
+    NotificationReadView,
+    NotificationUnreadCountView,
     PushSubscriptionDetailView,
     PushSubscriptionListCreateView,
-    NotificationListView,
-    NotificationReadView,
-    NotificationReadAllView,
-    NotificationUnreadCountView,
 )
 
 app_name = "notifications"
@@ -27,7 +27,6 @@ urlpatterns = [
         PushSubscriptionDetailView.as_view(),
         name="subscription-detail",
     ),
-
     # Notificações internas
     path(
         "",

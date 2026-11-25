@@ -1,3 +1,4 @@
+import { refreshSession } from "./session-refresh";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = (process.env.DJANGO_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
@@ -50,10 +51,7 @@ export async function custodyResponse(request: NextRequest, segments: string[] =
     let result = access ? await send(access) : undefined;
     if (!result || result.status === 401) {
       if (!refresh) return NextResponse.json({ detail: "Sua sessão expirou. Entre novamente." }, { status: 401, headers });
-      const renewed = await fetch(`${API_URL}/api/auth/refresh/`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh }),
-        cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000),
-      });
+      const renewed = await refreshSession(API_URL, refresh);
       if ([400, 401, 403].includes(renewed.status)) return NextResponse.json({ detail: "Sua sessão expirou. Entre novamente." }, { status: 401, headers });
       if (!renewed.ok) throw new Error("Session unavailable");
       const data = await renewed.json();

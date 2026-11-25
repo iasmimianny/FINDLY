@@ -125,12 +125,15 @@ export default function VerificarEmail() {
           )}
 
           {status === "erro" && (
+            <div className="space-y-3">
+              <Link href="/reenviar-verificacao" className="block rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white">Enviar novo link</Link>
             <Link
               href="/login"
               className="block rounded-xl bg-black px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
             >
               Voltar ao login
             </Link>
+            </div>
           )}
         </div>
       </section>

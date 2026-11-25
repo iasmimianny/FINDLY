@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/+$/, "");
 const inputClass = "mt-2 w-full rounded-xl border border-gray-300 px-4 py-3";
 
 export default function PasswordResetForm({
   reset,
+  resendVerification = false,
 }: {
+  resendVerification?: boolean;
   reset?: { uid: string; token: string };
 }) {
   const [pending, setPending] = useState(false);
@@ -32,7 +33,7 @@ export default function PasswordResetForm({
     setError("");
     try {
       const response = await fetch(
-        `${API_URL}/api/auth/password-reset/${reset ? "confirm/" : ""}`,
+        resendVerification ? "/api/auth/resend-verification/" : `/api/auth/password-reset/${reset ? "confirm/" : ""}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -79,14 +80,16 @@ export default function PasswordResetForm({
       <section className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
         <p className="mb-2 text-sm font-bold tracking-wider">FINDLY</p>
         <h1 className="mb-4 text-2xl font-bold">
-          {reset ? "Redefinir senha" : "Recuperar senha"}
+          {reset ? "Redefinir senha" : resendVerification ? "Reenviar verificação de e-mail" : "Recuperar senha"}
         </h1>
 
         {done ? (
           <p role="status">
             {reset
               ? "Senha redefinida. Entre com a nova senha."
-              : "Se houver uma conta ativa com esse e-mail, você receberá um link para redefinir a senha."}
+              : resendVerification
+                ? "Se a conta ainda aguarda verificação, você receberá um novo link."
+                : "Se houver uma conta ativa com esse e-mail, você receberá um link para redefinir a senha."}
           </p>
         ) : invalidLink ? (
           <p role="alert">O link está incompleto. Solicite um novo link.</p>

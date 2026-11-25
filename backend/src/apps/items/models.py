@@ -15,7 +15,6 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 
-
 PUBLIC_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PUBLIC_CODE_LENGTH = 10
 

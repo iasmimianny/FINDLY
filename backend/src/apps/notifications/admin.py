@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from django.contrib import admin
 
-from .models import PushSubscription, Notification
+from .models import Notification, PushSubscription
 
 
 @admin.register(PushSubscription)

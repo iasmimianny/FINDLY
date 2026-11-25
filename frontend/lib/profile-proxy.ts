@@ -1,3 +1,4 @@
+import { refreshSession } from "./session-refresh";
 import { NextRequest, NextResponse } from "next/server";
 import type { Profile } from "./profile";
 
@@ -63,10 +64,7 @@ export async function profileResponse(request: NextRequest) {
     let result = access ? await send(access) : undefined;
     if (!result || result.status === 401) {
       if (!refresh) return NextResponse.json({ detail: "Sua sessão expirou. Entre novamente." }, { status: 401, headers });
-      const renewed = await fetch(`${API_URL}/api/auth/refresh/`, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ refresh }),
-        cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000),
-      });
+      const renewed = await refreshSession(API_URL, refresh);
       if ([400, 401, 403].includes(renewed.status)) {
         return NextResponse.json({ detail: "Sua sessão expirou. Entre novamente." }, { status: 401, headers });
       }

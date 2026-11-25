@@ -13,7 +13,7 @@ function loadModule(name) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 },
   }).outputText;
   const loaded = { exports: {} };
-  new Function("require", "module", "exports", compiled)(requireFrontend, loaded, loaded.exports);
+  new Function("require", "module", "exports", compiled)((name) => name.endsWith("/session-refresh") ? requireFrontend("./lib/session-refresh.ts") : requireFrontend(name), loaded, loaded.exports);
   return loaded.exports;
 }
 

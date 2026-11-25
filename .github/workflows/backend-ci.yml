@@ -2,9 +2,9 @@ name: Backend CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, felipe]
   pull_request:
-    branches: [main]
+    branches: [main, felipe]
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -1,6 +1,4 @@
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ========================================
 // TIPOS DO CADASTRO
@@ -64,7 +62,7 @@ export class ApiError extends Error {
 export async function cadastrarUsuario(
   dados: CadastroDados
 ): Promise<CadastroResposta> {
-  const resposta = await fetch(`${API_URL}/api/auth/register/`, {
+  const resposta = await fetch("/api/auth/register/", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

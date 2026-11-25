@@ -44,13 +44,15 @@ def expire_found_items(days: int | None = None) -> dict[str, int]:
         .values_list("pk", flat=True)
     )
 
+    from apps.operations.services import close_item_operations
+
     expired = 0
     rejected_claims = 0
 
     for pk in candidates:
         with transaction.atomic():
             item = FoundItem.objects.select_for_update().filter(pk=pk).first()
-            if item is None or item.is_terminal:
+            if item is None or item.is_terminal or item.updated_at >= cutoff:
                 continue
             try:
                 expired_item = transition_found_item(
@@ -59,7 +61,9 @@ def expire_found_items(days: int | None = None) -> dict[str, int]:
             except InvalidStatusTransition:
                 continue
             expired += 1
-            rejected_claims += _close_pending_claims(expired_item)
+            rejected_claims += close_item_operations(
+                expired_item, note="Item expirado automaticamente pelo sistema."
+            )
 
     if expired:
         logger.info(
@@ -68,26 +72,6 @@ def expire_found_items(days: int | None = None) -> dict[str, int]:
             rejected_claims,
         )
     return {"expired": expired, "rejected_claims": rejected_claims}
-
-
-def _close_pending_claims(item: FoundItem) -> int:
-    """Recusa claims pendentes de um item encerrado, mantendo a trilha."""
-    # Import local: itens não depende de operações no carregamento do app.
-    from apps.operations.models import Claim, ClaimStatus
-    from apps.operations.services import reject_claim
-
-    pending = list(
-        Claim.objects.filter(item=item, status=ClaimStatus.PENDING).select_related(
-            "item"
-        )
-    )
-    for claim in pending:
-        reject_claim(
-            claim,
-            user=None,
-            decision_note="Item expirado automaticamente pelo sistema.",
-        )
-    return len(pending)
 
 
 @shared_task

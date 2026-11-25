@@ -149,7 +149,7 @@ def test_operator_approves_claim(operator_client, pending_claim, operator_user, 
     assert data["status"] == ClaimStatus.APPROVED
     assert data["reviewed_by"]["id"] == operator_user.pk
     assert data["withdrawal"]["is_valid"] is True
-    assert data["withdrawal"]["qr_image"].endswith(".png")
+    assert data["withdrawal"]["token"] is None
 
     pending_claim.refresh_from_db()
     assert pending_claim.status == ClaimStatus.APPROVED
@@ -161,7 +161,7 @@ def test_operator_approves_claim(operator_client, pending_claim, operator_user, 
     authority = WithdrawalAuthority.objects.get(claim=pending_claim)
     assert authority.expires_at > timezone.now()
     assert authority.expires_at <= timezone.now() + timedelta(hours=24, minutes=1)
-    assert authority.qr_image
+    assert not authority.qr_image
 
     actions = set(AuditEvent.objects.filter(item=item).values_list("action", flat=True))
     assert AuditAction.STATUS_CHANGED in actions

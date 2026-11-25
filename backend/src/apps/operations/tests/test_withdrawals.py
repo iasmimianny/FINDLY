@@ -195,14 +195,10 @@ def test_item_must_be_awaiting_pickup(operator_client, approved_claim, operator_
     assert "não está aguardando" in response.json()["detail"].lower()
 
 
-def test_approve_claim_creates_qr_file(approved_claim):
+def test_approve_claim_does_not_create_public_media(approved_claim):
     authority = WithdrawalAuthority.objects.get(claim=approved_claim)
-    assert authority.qr_image.name.endswith(".png")
-
-    from pathlib import Path
-
-    assert Path(authority.qr_image.path).exists()
-    assert Path(authority.qr_image.path).stat().st_size > 0
+    assert authority.token
+    assert not authority.qr_image
 
 
 def test_item_label_returns_png(auth_client, found_item):
@@ -222,14 +218,18 @@ def test_item_label_requires_authentication(api_client, found_item):
     assert api_client.get(label_url(found_item)).status_code == 401
 
 
-def test_approved_claim_in_claim_detail_exposes_qr(operator_client, approved_claim):
+def test_only_claimant_can_read_active_token(
+    operator_client, other_client, approved_claim
+):
     url = reverse("operations:claim-detail", args=[approved_claim.pk])
     response = operator_client.get(url)
 
     assert response.status_code == 200
     withdrawal = response.json()["withdrawal"]
     assert withdrawal["is_valid"] is True
-    assert withdrawal["qr_image"].startswith("http")
+    assert withdrawal["token"] is None
+    owner = other_client.get(url)
+    assert owner.json()["withdrawal"]["token"] == approved_claim.withdrawal.token
 
 
 def test_terminal_item_cannot_be_claimed_after_withdrawal(
@@ -255,3 +255,37 @@ def test_direct_service_approval_requires_custody(
     claim = Claim.objects.create(item=found_item, claimant=common_user)
     with pytest.raises(InvalidClaim):
         approve_claim(claim, user=operator_user)
+
+
+def test_staff_can_reissue_only_expired_authorization(
+    approved_claim, operator_client, other_client
+):
+    authority = approved_claim.withdrawal
+    old_token = authority.token
+    url = reverse("operations:claim-reissue", args=[approved_claim.pk])
+    assert other_client.post(url, {}, format="json").status_code == 403
+    assert operator_client.post(url, {}, format="json").status_code == 400
+
+    authority.expires_at = timezone.now() - timedelta(seconds=1)
+    authority.save(update_fields=["expires_at"])
+    response = operator_client.post(url, {}, format="json")
+    assert response.status_code == 200
+    assert response.json()["withdrawal"]["token"] is None
+    authority.refresh_from_db()
+    assert authority.token != old_token
+    assert authority.is_valid
+    assert AuditEvent.objects.filter(
+        item=approved_claim.item, action=AuditAction.WITHDRAWAL_REISSUED
+    ).exists()
+    assert (
+        operator_client.post(
+            confirm_url(), {"token": old_token}, format="json"
+        ).status_code
+        == 400
+    )
+    assert (
+        operator_client.post(
+            confirm_url(), {"token": authority.token}, format="json"
+        ).status_code
+        == 200
+    )

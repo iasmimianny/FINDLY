@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import PushSubscription, Notification
+from .models import Notification, PushSubscription
 
 
 class PushKeysSerializer(serializers.Serializer):

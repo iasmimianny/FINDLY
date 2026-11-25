@@ -15,8 +15,8 @@ Rotas montadas em ``/api/items/`` (ver ``urls.py``):
 from __future__ import annotations
 
 from django.db import transaction
-from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
@@ -31,7 +31,7 @@ from apps.users.permissions import IsOperatorOrAdmin
 from services import notification_service
 
 from .filters import FoundItemFilter, LostReportFilter
-from .models import FoundItem, ItemPhoto, LostReport, LostReportStatus
+from .models import FoundItem, ItemPhoto, ItemStatus, LostReport, LostReportStatus
 from .permissions import (
     CanEditLostReport,
     CanManageItemPhotos,
@@ -170,9 +170,20 @@ class FoundItemViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        target = serializer.validated_data["status"]
+        if target not in {ItemStatus.EXPIRADO, ItemStatus.ENCAMINHADO}:
+            raise ValidationError(
+                {
+                    "status": [
+                        "Use a operação de custódia, aprovação ou retirada correspondente."
+                    ]
+                }
+            )
+
         item = self.get_object()
         item = FoundItem.objects.select_for_update().get(pk=item.pk)
         from apps.operations.services import (
+            close_item_operations,
             current_collection_point,
             require_point_responsibility,
         )
@@ -183,9 +194,10 @@ class FoundItemViewSet(
         try:
             item = transition_found_item(
                 item,
-                serializer.validated_data["status"],
+                target,
                 user=request.user,
             )
+            close_item_operations(item, note="Item encerrado pela equipe.")
 
         except InvalidStatusTransition as exc:
             raise ValidationError({"status": [str(exc)]}) from exc
@@ -359,4 +371,25 @@ class LostReportViewSet(
                 report,
                 context=self.get_serializer_context(),
             ).data
+        )
+
+    @extend_schema(
+        tags=["items"],
+        summary="Concluir alerta de perda como encontrado",
+        request=None,
+        responses={200: LostReportSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="complete")
+    @transaction.atomic
+    def complete(self, request, public_code=None):
+        report = self.get_object()
+        report = LostReport.objects.select_for_update().get(pk=report.pk)
+        if report.status != LostReportStatus.ABERTO:
+            raise ValidationError(
+                {"status": ["Apenas alertas abertos podem ser concluídos."]}
+            )
+        report.status = LostReportStatus.ENCONTRADO
+        report.save(update_fields=["status", "updated_at"])
+        return Response(
+            LostReportSerializer(report, context=self.get_serializer_context()).data
         )

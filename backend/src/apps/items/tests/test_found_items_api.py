@@ -161,22 +161,31 @@ def test_common_user_cannot_change_status(auth_client, found_item):
     assert response.status_code == 403
 
 
-def test_operator_applies_valid_transition(operator_client, found_item):
+def test_operator_can_forward_item(operator_client, found_item):
     response = operator_client.post(
-        status_url(found_item), {"status": ItemStatus.EM_CUSTODIA}, format="json"
+        status_url(found_item), {"status": ItemStatus.ENCAMINHADO}, format="json"
     )
 
     assert response.status_code == 200
-    assert response.json()["status"] == ItemStatus.EM_CUSTODIA
+    assert response.json()["status"] == ItemStatus.ENCAMINHADO
     found_item.refresh_from_db()
-    assert found_item.status == ItemStatus.EM_CUSTODIA
+    assert found_item.status == ItemStatus.ENCAMINHADO
 
 
-def test_operator_cannot_skip_states(operator_client, found_item):
+@pytest.mark.parametrize(
+    "target",
+    [ItemStatus.EM_CUSTODIA, ItemStatus.AGUARDANDO_RETIRADA, ItemStatus.DEVOLVIDO],
+)
+def test_operator_cannot_bypass_workflow(operator_client, found_item, target):
+    if target == ItemStatus.AGUARDANDO_RETIRADA:
+        found_item.status = ItemStatus.EM_CUSTODIA
+    elif target == ItemStatus.DEVOLVIDO:
+        found_item.status = ItemStatus.AGUARDANDO_RETIRADA
+    found_item.save(update_fields=["status"])
+
     response = operator_client.post(
-        status_url(found_item), {"status": ItemStatus.DEVOLVIDO}, format="json"
+        status_url(found_item), {"status": target}, format="json"
     )
-
     assert response.status_code == 400
     assert "status" in response.json()
 

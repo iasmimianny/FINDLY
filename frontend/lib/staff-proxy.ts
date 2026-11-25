@@ -1,3 +1,4 @@
+import { refreshSession } from "./session-refresh";
 import { NextRequest, NextResponse } from "next/server";
 
 const API_URL = (
@@ -75,7 +76,7 @@ export function staffTarget(parts: string[], method: string) {
       parts.length === 3 &&
       parts[0] === "claims" &&
       idPattern.test(parts[1]) &&
-      ["approve", "reject"].includes(parts[2])
+      ["approve", "reject", "reissue"].includes(parts[2])
     )
       return `/api/operations/claims/${parts[1]}/${parts[2]}/`;
 
@@ -326,19 +327,7 @@ export async function staffResponse(
           { status: 401, headers }
         );
 
-      const renewed = await fetch(
-        `${API_URL}/api/auth/refresh/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ refresh }),
-          cache: "no-store",
-          redirect: "error",
-          signal: AbortSignal.timeout(10000),
-        }
-      );
+      const renewed = await refreshSession(API_URL, refresh);
 
       if ([400, 401, 403].includes(renewed.status))
         return NextResponse.json(

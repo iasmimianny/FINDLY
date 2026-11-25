@@ -13,17 +13,16 @@ from __future__ import annotations
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
-
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import PushSubscription, Notification
+from .models import Notification, PushSubscription
 from .serializers import (
-    PushSubscriptionSerializer,
     NotificationSerializer,
+    PushSubscriptionSerializer,
 )
 
 
@@ -107,9 +106,7 @@ class NotificationListView(generics.ListAPIView):
     queryset = Notification.objects.none()
 
     def get_queryset(self):
-        queryset = Notification.objects.filter(
-            user=self.request.user
-        )
+        queryset = Notification.objects.filter(user=self.request.user)
 
         unread = self.request.query_params.get("unread")
 
@@ -145,13 +142,9 @@ class NotificationReadView(APIView):
             notification.is_read = True
             notification.read_at = timezone.now()
 
-            notification.save(
-                update_fields=["is_read", "read_at"]
-            )
+            notification.save(update_fields=["is_read", "read_at"])
 
-        return Response(
-            NotificationSerializer(notification).data
-        )
+        return Response(NotificationSerializer(notification).data)
 
 
 class NotificationReadAllView(APIView):

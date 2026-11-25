@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import {
   PanelsTopLeft,
@@ -67,6 +67,9 @@ export default function AppSidebar({
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const opener = useRef<HTMLButtonElement>(null);
+  const closer = useRef<HTMLButtonElement>(null);
+  const drawer = useRef<HTMLElement>(null);
 
   const links = accountLinks(area);
   const navigationId = `findly-${area}-navigation`;
@@ -102,10 +105,23 @@ export default function AppSidebar({
     const previousOverflow = document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
+    closer.current?.focus();
+    const trigger = opener.current;
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab" || !drawer.current) return;
+      const controls = Array.from(drawer.current.querySelectorAll<HTMLElement>(
+        "a[href], button:not([disabled])",
+      )).filter((element) => element.getClientRects().length > 0);
+      const first = controls[0];
+      const last = controls.at(-1);
+      if (event.shiftKey ? document.activeElement === first : document.activeElement === last) {
+        event.preventDefault();
+        (event.shiftKey ? last : first)?.focus();
       }
     }
 
@@ -115,6 +131,7 @@ export default function AppSidebar({
       document.body.style.overflow = previousOverflow;
 
       window.removeEventListener("keydown", handleEscape);
+      trigger?.focus();
     };
   }, [mobileOpen]);
 
@@ -181,6 +198,7 @@ export default function AppSidebar({
 
       <button
         type="button"
+        ref={opener}
         onClick={() => setMobileOpen(true)}
         aria-label="Abrir menu"
         aria-expanded={mobileOpen}
@@ -203,6 +221,9 @@ export default function AppSidebar({
       {/* Sidebar compartilhada */}
 
       <aside
+        ref={drawer}
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? true : undefined}
         data-collapsed={effectiveCollapsed}
         aria-label={area === "staff" ? "Menu do funcionário" : "Menu principal"}
         inert={isMobile && !mobileOpen}
@@ -255,6 +276,7 @@ export default function AppSidebar({
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
+            ref={closer}
             aria-label="Fechar menu"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-400 transition hover:bg-gray-800 hover:text-white md:hidden"
           >

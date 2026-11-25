@@ -10,7 +10,7 @@ function loadModule(name) {
   const source = fs.readFileSync(path.resolve(__dirname, "../lib", name), "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 } }).outputText;
   const loaded = { exports: {} };
-  new Function("require", "module", "exports", compiled)(requireFrontend, loaded, loaded.exports);
+  new Function("require", "module", "exports", compiled)((name) => name.endsWith("/session-refresh") ? requireFrontend("./lib/session-refresh.ts") : requireFrontend(name), loaded, loaded.exports);
   return loaded.exports;
 }
 const { staffTarget, validStaffInput, staffResponse } = loadModule("staff-proxy.ts");
@@ -21,6 +21,7 @@ test("staff routes match existing backend endpoints and refuse arbitrary URLs an
   for (const [parts,expected] of [[["items"],"/api/items/found/"],[["items",code],`/api/items/found/${code}/`],[["items",code,"history"],`/api/items/found/${code}/history/`],[["items",code,"label"],`/api/operations/items/found/${code}/label/`],[["claims"],"/api/operations/claims/"],[["audit"],"/api/audit/"]]) assert.equal(staffTarget(parts,"GET"),expected);
   assert.equal(staffTarget(["claims","3","approve"],"POST"),"/api/operations/claims/3/approve/");
   assert.equal(staffTarget(["claims","3","reject"],"POST"),"/api/operations/claims/3/reject/");
+  assert.equal(staffTarget(["claims","3","reissue"],"POST"),"/api/operations/claims/3/reissue/");
   assert.equal(staffTarget(["withdrawal"],"POST"),"/api/operations/withdrawals/confirm/");
   for(const parts of [[],[".."],["items","wrong"],["claims","03","approve"],["claims","1","cancel"],["https://example.com"]]) assert.equal(staffTarget(parts,"POST"),null);
   assert.equal(staffTarget(["items"],"DELETE"),null);
@@ -28,6 +29,7 @@ test("staff routes match existing backend endpoints and refuse arbitrary URLs an
 test("writes accept only the correct decision or withdrawal payload",()=>{
   assert(validStaffInput(["claims","3","approve"],{decision_note:"Conferido"}));
   assert(validStaffInput(["claims","3","reject"],{}));
+  assert(validStaffInput(["claims","3","reissue"],{decision_note:"Identidade conferida"}));
   assert(validStaffInput(["withdrawal"],{token:"test-token"}));
   for(const value of [{token:""},{token:" "},{token:"x".repeat(256)},{token:"valid",user:5},[]]) assert(!validStaffInput(["withdrawal"],value));
   assert(!validStaffInput(["claims"],{status:"APPROVED"}));

@@ -10,14 +10,21 @@ from django.utils import timezone
 
 from apps.operations.models import WithdrawalAuthority
 from apps.operations.tasks import cleanup_expired_withdrawal_qrs
+from services.qrcode_service import build_qr_png
 
 pytestmark = pytest.mark.django_db
 
 
+def _legacy_qr(authority: WithdrawalAuthority) -> Path:
+    authority.qr_image.save("legacy.png", build_qr_png(authority.token))
+    return Path(authority.qr_image.path)
+
+
 def _expire(authority: WithdrawalAuthority, days_ago: int) -> Path:
+    path = _legacy_qr(authority)
     authority.expires_at = timezone.now() - timedelta(days=days_ago)
     authority.save(update_fields=["expires_at"])
-    return Path(authority.qr_image.path)
+    return path
 
 
 def test_cleanup_removes_qr_file_after_retention(approved_claim):
@@ -37,7 +44,7 @@ def test_cleanup_removes_qr_file_after_retention(approved_claim):
 
 def test_cleanup_keeps_valid_qr(approved_claim):
     authority = WithdrawalAuthority.objects.get(claim=approved_claim)
-    path = Path(authority.qr_image.path)
+    path = _legacy_qr(authority)
 
     assert cleanup_expired_withdrawal_qrs() == {"cleaned": 0}
     assert path.exists()

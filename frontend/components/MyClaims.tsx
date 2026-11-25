@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useState } from "react";
 import PrivateLayout from "../app/components/funcionario/PrivateLayout";
 import { useResource, Failure, Pagination } from "./funcionario/StaffUI";
@@ -14,7 +15,6 @@ function date(value: string) {
 
 function Authorization({ authority }: { authority: Withdrawal }) {
   const [now, setNow] = useState(() => Date.now());
-  const [imageFailed, setImageFailed] = useState(false);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15000);
     return () => clearInterval(timer);
@@ -24,11 +24,15 @@ function Authorization({ authority }: { authority: Withdrawal }) {
   return <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
     <h3 className="font-semibold">QR Code de retirada</h3>
     <p className="mt-2 text-sm">Apresente este QR Code ao funcionário no ponto de coleta responsável. Válido até {date(authority.expires_at)}.</p>
-    {authority.qr_image && !imageFailed ? (
-      // QR fornecido pelo backend; não gerar uma autorização no navegador.
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={authority.qr_image} alt="QR Code da autorização de retirada" width={240} height={240} onError={() => setImageFailed(true)} className="mt-4 h-auto max-w-full rounded-lg bg-white p-3" />
-    ) : <p role="status" className="mt-3 text-sm">QR Code indisponível. Atualize a lista ou peça orientação ao funcionário.</p>}
+    {authority.token ? (
+      <>
+        <QRCodeSVG value={authority.token} title="QR Code da autorização de retirada" size={224} marginSize={4} className="mt-4 h-auto max-w-full" />
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer font-semibold">Mostrar código para digitação manual</summary>
+          <code className="mt-2 block break-all">{authority.token}</code>
+        </details>
+      </>
+    ) : <p role="status" className="mt-3 text-sm">Autorização indisponível. Atualize a lista ou peça orientação ao funcionário.</p>}
     <p className="mt-3 text-xs text-gray-600">A retirada só é concluída após a validação pelo funcionário.</p>
   </div>;
 }
