@@ -51,7 +51,7 @@ export default function FAQContent() {
         <div className="findly-page">
           {/* Cabeçalho */}
           <div className="mb-8 w-full text-left">
-            <p className="text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+            <p className="text-xs font-bold uppercase tracking-widest findly-page-label">
               CENTRAL DE AJUDA
             </p>
 

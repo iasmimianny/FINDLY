@@ -154,6 +154,7 @@ function Results({
               item={item}
               kind={query.kind}
               viewerId={viewer?.id}
+              onChanged={() => setAttempt(value => value + 1)}
             />
           ))}
         </div>
@@ -261,7 +262,7 @@ export default function ItemList({
 
           <header className="mb-8 flex flex-wrap items-end justify-between gap-5">
             <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-[#42a5df]">
+              <p className="text-xs font-bold uppercase tracking-widest findly-page-label">
                 {mine ? "Meus registros" : "Explorar registros"}
               </p>
 

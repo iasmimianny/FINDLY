@@ -471,7 +471,7 @@ export default function NotificationsPage() {
     <div className="findly-page text-gray-900">
       <header className="mb-7 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-blue-600">
+          <p className="text-xs font-bold uppercase tracking-widest findly-page-label">
             Sua conta
           </p>
 
