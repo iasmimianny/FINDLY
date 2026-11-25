@@ -1205,6 +1205,54 @@ notificações de negócio cheguem ao destinatário.
 1. Recriar os containers (`docker compose up -d --force-recreate web worker`)
    para o `env_file` ler a configuração nova quando o Docker estiver em uso.
 
+## 🗓️ 2026-11-25 — Migração para o monorepo FINDLY
+
+### 🎯 Objetivo
+Reaproveitar o diretório de trabalho atual (sem clonar de novo) apontando-o
+para `https://github.com/iasmimianny/FINDLY.git`, que integra o backend em
+`backend/` e o front em `frontend/`.
+
+### 🔁 Como foi feito
+- Os históricos são **sem ancestor comum**, então não dava para fazer `pull`
+  direto. Criei o branch de backup `backup/backend-pre-monorepo` em `c1de00b`.
+- `origin` antigo renomeado para `backend-original`; novo `origin` adicionado e
+  `main` trazida para `origin/main` (`6d78717`) com `git reset --hard`.
+- O backend do monorepo já continha todo o trabalho anterior (SMTP do Gmail,
+  Postman, seed) e acrescentava novas funcionalidades de notificações/custódia.
+- `.env` movido para `backend/.env`; `frontend/.env.local` criado com
+  `DJANGO_API_URL` e `NEXT_PUBLIC_API_URL` apontando para `http://localhost:8000`
+  (ambos gitignored).
+- Restos de `__pycache__` do antigo layout na raiz foram removidos e
+  `logs/security.log` foi movido para `backend/logs/`.
+
+### ⚙️ Dependências
+- Backend: `.venv` reaproveitado; `pip install -r requirements.txt
+  -r requirements-dev.txt` (todas já satisfeitas).
+- Frontend: `npm ci` em `frontend/`. O npm relatou 9 vulnerabilidades
+  (7 moderadas, 1 alta, 1 crítica) — não tratadas nesta etapa.
+
+### ✅ Validações
+| Verificação | Resultado |
+| :--- | :--- |
+| `manage.py check` | sem problemas |
+| `manage.py makemigrations --check --dry-run` | No changes detected |
+| `pytest -q` | 304 passed |
+| `spectacular --validate --fail-on-warn` | OK |
+| `sendtestemail magnofilho@ads.fiponline.edu.br` | entregue (exit 0) |
+| `npm run lint` | OK |
+| `npm run build` | OK |
+| `docker compose config` | OK |
+
+### ⚠️ Observações
+- O daemon do Docker não está disponível nesta máquina e não há Postgres/Redis
+  locais rodando, então a stack completa ainda não foi iniciada.
+- `origin` agora aponta para o monorepo; `backend-original` preserva o histórico
+  anterior do backend para consulta.
+
+### ➡️ Próximos passos
+1. Iniciar o Docker e rodar `docker compose up -d --build` em `backend/`.
+2. Rodar `npm run dev` em `frontend/` e acessar `http://localhost:3000`.
+
 <!-- ===================================================================== -->
 <!-- NOVAS ENTRADAS DEVEM SER ADICIONADAS ACIMA DESTA LINHA               -->
 <!-- ===================================================================== -->
