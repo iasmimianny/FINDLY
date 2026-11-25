@@ -85,14 +85,39 @@ class FoundItemSerializer(serializers.ModelSerializer):
 class FoundItemWriteSerializer(serializers.ModelSerializer):
     """Criação/edição de achados (autor, operador ou admin)."""
 
+    lost_report_code = serializers.SlugRelatedField(
+        source="lost_report",
+        slug_field="public_code",
+        queryset=LostReport.objects.filter(status=LostReportStatus.ABERTO),
+        required=False,
+        write_only=True,
+        error_messages={
+            "does_not_exist": "O código informado não corresponde a um alerta aberto.",
+        },
+    )
+
     class Meta:
         model = FoundItem
-        fields = ("title", "description", "category", "found_at", "found_location")
+        fields = (
+            "title",
+            "description",
+            "category",
+            "found_at",
+            "found_location",
+            "lost_report_code",
+        )
 
     def validate_found_at(self, value):
         if value > timezone.now() + FUTURE_TOLERANCE:
             raise serializers.ValidationError(
                 "A data do achado não pode estar no futuro."
+            )
+        return value
+
+    def validate_lost_report_code(self, value):
+        if self.instance is not None:
+            raise serializers.ValidationError(
+                "O vínculo com o alerta só pode ser definido no cadastro do achado."
             )
         return value
 

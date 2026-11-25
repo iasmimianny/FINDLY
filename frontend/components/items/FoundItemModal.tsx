@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Button } from "@heroui/react";
 import FindlyModal from "../FindlyModal";
 import OccurrenceDatePicker from "../OccurrenceDatePicker";
-import { Button } from "@heroui/react";
 
 import {
   createFoundItem,
@@ -22,11 +22,7 @@ type Props = {
 const inputClass =
   "w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-500";
 
-export default function FoundItemModal({
-  item,
-  onClose,
-  onSuccess,
-}: Props) {
+export default function FoundItemModal({ item, onClose, onSuccess }: Props) {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
@@ -77,6 +73,7 @@ export default function FoundItemModal({
         description: description.trim(),
         found_location: location.trim(),
         found_at: occurrenceDate(date),
+        lost_report_code: item.public_code,
       });
 
       if (photo) {
@@ -84,15 +81,14 @@ export default function FoundItemModal({
           await uploadItemPhoto(foundItem.public_code, photo);
         } catch {
           onSuccess(
-            "Objeto cadastrado, mas a foto não foi enviada. Adicione-a posteriormente em Meus itens."
+            "Objeto vinculado ao alerta. A foto não foi enviada e pode ser adicionada em Meus itens. Entregue o objeto a um ponto de coleta."
           );
-
           return;
         }
       }
 
       onSuccess(
-        "Objeto encontrado cadastrado! Entregue-o a um ponto de coleta do Findly. O alerta de perda continua aberto."
+        "Objeto encontrado vinculado ao alerta. Entregue-o a um ponto de coleta do Findly."
       );
     } catch (reason) {
       setError(
@@ -113,7 +109,10 @@ export default function FoundItemModal({
       busy={sending}
       size="lg"
     >
-      <form onSubmit={submit} className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+      <form
+        onSubmit={submit}
+        className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2"
+      >
         <div>
           <label className="mb-2 block text-sm font-semibold">
             Nome do objeto
@@ -214,9 +213,9 @@ export default function FoundItemModal({
         </div>
 
         <p className="rounded-xl bg-blue-50 p-3 text-sm text-blue-800 sm:col-span-2">
-          Você está registrando um objeto encontrado que pode corresponder a este anúncio.
-          Depois, entregue-o a um ponto de coleta do Findly para o funcionário registrar o recebimento.
-          O alerta de perda continuará aberto; este cadastro não confirma a propriedade do objeto.
+          O achado será vinculado a este alerta. Entregue o objeto a um ponto de
+          coleta do Findly. O alerta será encerrado quando o funcionário
+          confirmar a retirada pelo proprietário do alerta.
         </p>
 
         {error && (

@@ -22,7 +22,7 @@ from django.utils import timezone
 
 from apps.audit.models import AuditAction
 from apps.audit.services import record_event
-from apps.items.models import FoundItem, ItemStatus
+from apps.items.models import FoundItem, ItemStatus, LostReport, LostReportStatus
 from apps.items.services import transition_found_item
 from apps.users.models import User
 from services import notification_service
@@ -445,10 +445,8 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
 
     if not authority:
         raise InvalidWithdrawal("QR Code de retirada inválido.")
-
     if authority.used_at is not None:
         raise InvalidWithdrawal("Este QR Code já foi utilizado.")
-
     if authority.is_expired:
         raise InvalidWithdrawal(
             "Este QR Code expirou. Solicite uma nova autorização de retirada."
@@ -464,14 +462,22 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
 
     previous_status = item.status
     point = current_collection_point(item)
-
     item = transition_found_item(item, ItemStatus.DEVOLVIDO, user=user)
 
     now = timezone.now()
     authority.used_at = now
     authority.save(update_fields=["used_at"])
-
     _close_active_custody(item, when=now, note="Retirado pelo proprietário")
+
+    if item.lost_report_id is not None:
+        LostReport.objects.filter(
+            pk=item.lost_report_id,
+            owner_id=claim.claimant_id,
+            status=LostReportStatus.ABERTO,
+        ).update(
+            status=LostReportStatus.ENCONTRADO,
+            updated_at=now,
+        )
 
     record_event(
         item=item,

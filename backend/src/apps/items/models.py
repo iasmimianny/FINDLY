@@ -1,10 +1,9 @@
 """Modelos do app de itens: achados, perdidos e fotos.
 
-Um **achado** (``FoundItem``) é um objeto encontrado e cadastrado por um usuário
-ou operador. Um **perdido** (``LostReport``) é um alerta aberto por quem procura
-um pertence. O ciclo de vida do achado é controlado pela máquina de estados em
-``services.py`` — o campo ``status`` nunca deve ser alterado diretamente pelas
-views.
+Um achado (FoundItem) é um objeto encontrado e cadastrado por um usuário
+ou operador. Um perdido (LostReport) é um alerta aberto por quem procura
+um pertence. O ciclo de vida do achado é controlado pela máquina de estados
+em services.py. As views devem usar esse serviço para alterar seu status.
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import models
 
-# Alfabeto sem caracteres ambíguos (0/O, 1/I) para códigos lidos em etiquetas.
+
 PUBLIC_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 PUBLIC_CODE_LENGTH = 10
 
@@ -29,13 +28,13 @@ def generate_public_code() -> str:
 
 
 def item_photo_upload_to(instance: ItemPhoto, filename: str) -> str:
-    """Organiza as fotos por item: ``items/<codigo>/<uuid>.jpg``."""
+    """Organiza as fotos por item: items/<codigo>/<uuid>.jpg."""
     suffix = Path(filename).suffix.lower() or ".jpg"
     return f"items/{instance.item.public_code}/{uuid.uuid4().hex}{suffix}"
 
 
 class Category(models.TextChoices):
-    """Categorias usadas em achados e perdidos (filtro e match)."""
+    """Categorias usadas em achados e perdidos."""
 
     ELETRONICOS = "eletronicos", "Eletrônicos"
     DOCUMENTOS = "documentos", "Documentos"
@@ -47,7 +46,7 @@ class Category(models.TextChoices):
 
 
 class ItemStatus(models.TextChoices):
-    """Máquina de estados do achado (README, seção 3.2)."""
+    """Estados do item encontrado."""
 
     REPORTADO = "REPORTADO", "Reportado"
     EM_CUSTODIA = "EM_CUSTODIA", "Em custódia"
@@ -82,6 +81,14 @@ class FoundItem(models.Model):
         on_delete=models.PROTECT,
         related_name="found_items",
         verbose_name="reportado por",
+    )
+    lost_report = models.ForeignKey(
+        "LostReport",
+        on_delete=models.SET_NULL,
+        related_name="found_items",
+        verbose_name="alerta de perda",
+        null=True,
+        blank=True,
     )
     title = models.CharField("título", max_length=120)
     description = models.TextField("descrição")
@@ -118,7 +125,7 @@ class FoundItem(models.Model):
 
     @property
     def is_terminal(self) -> bool:
-        """``True`` quando o item não pode mais mudar de estado."""
+        """Retorna True quando o item não pode mais mudar de estado."""
         return self.status in {
             ItemStatus.DEVOLVIDO,
             ItemStatus.EXPIRADO,
@@ -184,7 +191,7 @@ class LostReport(models.Model):
 
 
 class ItemPhoto(models.Model):
-    """Foto de um item encontrado (já processada pelo serviço de fotos)."""
+    """Foto de um item encontrado, processada pelo serviço de fotos."""
 
     item = models.ForeignKey(
         FoundItem,

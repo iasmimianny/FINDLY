@@ -9,9 +9,9 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.audit.models import AuditAction, AuditEvent
-from apps.items.models import ItemStatus
+from apps.items.models import FoundItem, ItemStatus, LostReport, LostReportStatus
 from apps.operations.models import CustodyRecord, WithdrawalAuthority
-from apps.operations.services import approve_claim
+from apps.operations.services import approve_claim, submit_claim, transfer_to_point
 
 pytestmark = pytest.mark.django_db
 
@@ -83,6 +83,58 @@ def test_confirm_accepts_qr_payload(operator_client, approved_claim):
     assert response.status_code == 200
     approved_claim.item.refresh_from_db()
     assert approved_claim.item.status == ItemStatus.DEVOLVIDO
+
+
+@pytest.mark.parametrize("returned_to_owner", [True, False])
+def test_linked_report_leaves_open_mural_only_after_owner_withdraws(
+    operator_client,
+    auth_client,
+    operator_user,
+    common_user,
+    other_user,
+    point,
+    found_payload,
+    returned_to_owner,
+):
+    owner = common_user if returned_to_owner else other_user
+    report = LostReport.objects.create(
+        owner=owner,
+        title=found_payload["title"],
+        description=found_payload["description"],
+        category=found_payload["category"],
+        lost_at=timezone.now() - timedelta(days=1),
+        lost_location=found_payload["found_location"],
+    )
+    created = operator_client.post(
+        reverse("items:found-item-list"),
+        {**found_payload, "lost_report_code": report.public_code},
+        format="json",
+    )
+    assert created.status_code == 201, created.json()
+    linked_item = FoundItem.objects.get(public_code=created.json()["public_code"])
+    assert linked_item.lost_report_id == report.pk
+
+    transfer_to_point(linked_item, point, user=operator_user)
+    linked_item.refresh_from_db()
+    claim = submit_claim(linked_item, common_user)
+    approve_claim(claim, user=operator_user)
+    mural_url = reverse("items:lost-report-list")
+    open_reports = {"status": LostReportStatus.ABERTO, "search": report.public_code}
+    assert auth_client.get(mural_url, open_reports).json()["count"] == 1
+
+    authority = WithdrawalAuthority.objects.get(claim=claim)
+    response = operator_client.post(
+        confirm_url(), {"token": authority.token}, format="json"
+    )
+    assert response.status_code == 200, response.json()
+
+    report.refresh_from_db()
+    if returned_to_owner:
+        assert report.status == LostReportStatus.ENCONTRADO
+        assert auth_client.get(mural_url, open_reports).json()["count"] == 0
+    else:
+        assert report.status == LostReportStatus.ABERTO
+        assert auth_client.get(mural_url, open_reports).json()["count"] == 1
 
 
 def test_confirm_twice_is_rejected(operator_client, approved_claim):

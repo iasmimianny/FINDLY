@@ -15,6 +15,7 @@ Rotas montadas em ``/api/items/`` (ver ``urls.py``):
 from __future__ import annotations
 
 from django.db import transaction
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
@@ -329,13 +330,18 @@ class LostReportViewSet(
 
         report = self.get_object()
 
-        if report.status != LostReportStatus.ABERTO:
+        now = timezone.now()
+        cancelled = LostReport.objects.filter(
+            pk=report.pk,
+            status=LostReportStatus.ABERTO,
+        ).update(status=LostReportStatus.CANCELADO, updated_at=now)
+        if not cancelled:
             raise ValidationError(
                 {"status": ["Apenas alertas abertos podem ser cancelados."]}
             )
 
         report.status = LostReportStatus.CANCELADO
-        report.save(update_fields=["status", "updated_at"])
+        report.updated_at = now
 
         return Response(
             LostReportSerializer(

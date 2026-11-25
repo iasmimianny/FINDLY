@@ -344,6 +344,7 @@ export async function createFoundItem(data: {
   category: string;
   found_at: string;
   found_location: string;
+  lost_report_code?: string;
 }) {
   return readItemResponse<Item>(
     await fetch("/api/items/found/", {
