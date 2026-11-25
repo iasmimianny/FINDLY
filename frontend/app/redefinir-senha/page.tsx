@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PasswordResetForm from "../../components/PasswordResetForm";
 
-export const metadata: Metadata = { referrer: "no-referrer" };
+export const metadata: Metadata = { title: "Redefinir senha", referrer: "no-referrer" };
 
 export default async function RedefinirSenha({
   searchParams,

@@ -8,3 +8,5 @@ export default async function MeusItens({ searchParams }: {
   const search = typeof params.busca === "string" ? params.busca : "";
   return <ItemList key={`${kind}-${search}`} mine initialKind={kind} initialSearch={search} />;
 }
+
+export const metadata = { title: "Meus itens" };

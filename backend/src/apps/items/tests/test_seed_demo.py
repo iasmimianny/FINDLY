@@ -42,7 +42,9 @@ def test_creates_the_expected_demo_dataset():
 
     claim = Claim.objects.get(item=laptop)
     assert claim.status == ClaimStatus.APPROVED
-    assert claim.withdrawal.qr_image
+    assert claim.withdrawal.token
+    assert claim.withdrawal.is_valid
+    assert not claim.withdrawal.qr_image
     assert claim.withdrawal.expires_at > timezone.now()
 
 

@@ -8,3 +8,5 @@ export default async function ItensPerdidos({ searchParams }: {
   const search = typeof params.busca === "string" ? params.busca : "";
   return <ItemList key={`${kind}-${search}`} initialKind={kind} initialSearch={search} />;
 }
+
+export const metadata = { title: "Itens perdidos" };

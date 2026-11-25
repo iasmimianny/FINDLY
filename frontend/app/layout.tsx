@@ -17,7 +17,7 @@ const geistMono = localFont({
 });
 
 export const metadata = {
-  title: "Findly",
+  title: { default: "Início | Findly", template: "%s | Findly" },
   description: "Sistema de achados e perdidos",
 };
 
