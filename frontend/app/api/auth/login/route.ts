@@ -1,10 +1,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-const API_URL =
+const API_URL = (
   process.env.DJANGO_API_URL ??
   process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000";
+  "http://localhost:8000"
+).replace(/\/+$/, "");
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,7 @@ export async function POST(request: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "application/json",
       },
       body: JSON.stringify({
         email: dados.email.trim(),
@@ -36,7 +38,14 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(10000),
     });
 
-    const resultado = await resposta.json();
+    const resultado = await resposta.json().catch(() => null);
+    if (!resultado || typeof resultado !== "object") {
+      console.error("Login: resposta inválida do backend", resposta.status);
+      return NextResponse.json(
+        { detail: `O backend retornou uma resposta inválida ao entrar (HTTP ${resposta.status}).` },
+        { status: 502 }
+      );
+    }
 
     if (!resposta.ok) {
       return NextResponse.json(

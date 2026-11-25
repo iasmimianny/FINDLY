@@ -101,7 +101,13 @@ export async function loginUsuario(
     cache: "no-store",
   });
 
-  const resultado = await resposta.json();
+  const resultado = await resposta.json().catch(() => null);
+  if (!resultado || typeof resultado !== "object") {
+    throw new ApiError(
+      `O servidor do Findly retornou uma resposta inválida ao entrar (HTTP ${resposta.status}).`,
+      resposta.status
+    );
+  }
 
   if (!resposta.ok) {
     const mensagem =
