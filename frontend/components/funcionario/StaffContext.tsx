@@ -36,7 +36,7 @@ export function StaffProvider({ children }: { children: ReactNode }) {
 
 export function StaffPointSummary() {
   const staff = useStaff();
-  if (!staff) return null;
+  if (!staff || (staff.state.status === "ready" && staff.state.user.role === "admin")) return null;
   const { state } = staff;
   return <div className="mb-5 mt-8 rounded-2xl border border-gray-800 bg-[#1e2022] p-4">
     <div className="mb-2 flex items-center gap-2 text-sm font-bold"><MapPin size={18} className="shrink-0 text-blue-400" aria-hidden="true" />

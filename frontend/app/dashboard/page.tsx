@@ -1,4 +1,5 @@
 "use client";
+import CreateItemButton from "../../components/CreateItemButton";
 
 import { finishLoadingCycle } from "../../lib/loading-cycle";
 import FindlyLoading from "../../components/FindlyLoading";
@@ -6,7 +7,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   ArrowRight, Bell, CheckCircle2, ExternalLink, LayoutDashboard, MapPin,
-  Package, PlusCircle, RefreshCw, Search, SearchX, User,
+  Package, PlusCircle, RefreshCw, Search, SearchX,
 } from "lucide-react";
 import PrivateLayout from "../components/funcionario/PrivateLayout";
 import type { DashboardSummary } from "../../lib/dashboard";
@@ -36,7 +37,7 @@ function SummaryContent({ data }: { data: DashboardSummary }) {
           <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="break-words text-sm font-semibold group-hover:underline">{item.title}</h3><p className="mt-1 text-xs text-gray-600">{item.kind === "found" ? "Encontrado" : "Perdido"} · {item.category}</p></div><span className="shrink-0 rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700">{item.status}</span></div>
           <p className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-600"><span>{item.location}</span><span>{itemDate(item.occurred_at)}</span></p>
           <p className="mt-1 font-mono text-xs text-gray-500">{item.public_code}</p>
-        </Link>)}</div> : <div className="py-9 text-center"><SearchX size={32} className="mx-auto mb-3 text-gray-400" aria-hidden="true" /><h3 className="font-semibold">Você ainda não tem registros</h3><p className="mt-2 text-sm text-gray-600">Cadastre um item perdido ou encontrado para acompanhá-lo aqui.</p><Link href="/cadastrar-item" className="mt-4 inline-block rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white">Cadastrar primeiro item</Link></div>}
+        </Link>)}</div> : <div className="py-9 text-center"><SearchX size={32} className="mx-auto mb-3 text-gray-400" aria-hidden="true" /><h3 className="font-semibold">Você ainda não tem registros</h3><p className="mt-2 text-sm text-gray-600">Cadastre um item perdido ou encontrado para acompanhá-lo aqui.</p><CreateItemButton className="mt-4 inline-block rounded-xl bg-black px-4 py-3 text-sm font-semibold text-white">Cadastrar primeiro item</CreateItemButton></div>}
       </section>
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6 lg:col-span-5">
         <h2 className="flex items-center gap-2 text-lg font-bold"><MapPin size={20} className="text-blue-600" aria-hidden="true" />Pontos de coleta</h2>
@@ -79,21 +80,13 @@ export default function Dashboard() {
   function reload() { setLoading(true); setError(""); setData(null); setAttempt((value) => value + 1); }
   return <PrivateLayout>
     <div className="min-h-screen bg-[#F5F6F8] text-gray-900">
-      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-8">
-        <form action="/itens-perdidos" className="flex w-full max-w-lg items-center gap-2">
-          <input type="hidden" name="tipo" value="found" />
-          <label htmlFor="dashboard-search" className="sr-only">Pesquisar objetos encontrados</label>
-          <input id="dashboard-search" name="busca" type="search" placeholder="Pesquisar objetos encontrados…" className="min-w-0 flex-1 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-100" />
-          <button aria-label="Buscar objetos encontrados" className="rounded-xl bg-black p-3 text-white hover:bg-gray-800"><Search size={20} aria-hidden="true" /></button>
-        </form>
-        <Link href="/perfil" aria-label="Meu perfil" className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-gray-50 hover:bg-gray-100"><User size={20} aria-hidden="true" /></Link>
-      </header>
-      <div className="mx-auto max-w-7xl px-5 py-8 sm:px-8 lg:px-10">
+
+      <div className="findly-page">
         <div className="mb-7 flex flex-wrap items-end justify-between gap-5">
           <div><p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-blue-700"><LayoutDashboard size={16} aria-hidden="true" />Painel inicial</p><h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">{data?.user.full_name.trim() ? `Olá, ${data.user.full_name.trim().split(/\s+/)[0]}!` : "Bem-vindo ao Findly!"}</h1><p className="mt-2 text-sm leading-6 text-gray-600">Acompanhe seus registros e ajude objetos a voltarem para seus donos.</p></div>
           <button onClick={reload} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold disabled:opacity-50"><RefreshCw size={16} className={loading ? "animate-spin" : ""} aria-hidden="true" />Atualizar painel</button>
         </div>
-        <section className="mb-7 rounded-3xl bg-black px-6 py-7 text-white sm:px-8"><h2 className="text-2xl font-bold tracking-tight">Perdeu ou encontrou algum objeto?</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">Registre os detalhes e acompanhe a situação dos seus cadastros.</p><Link href="/cadastrar-item" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black hover:bg-gray-100"><PlusCircle size={18} aria-hidden="true" />Cadastrar item</Link></section>
+        <section className="mb-7 rounded-3xl bg-black px-6 py-7 text-white sm:px-8"><h2 className="text-2xl font-bold tracking-tight">Perdeu ou encontrou algum objeto?</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-gray-300">Registre os detalhes e acompanhe a situação dos seus cadastros.</p><CreateItemButton className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black hover:bg-gray-100"><PlusCircle size={18} aria-hidden="true" />Cadastrar item</CreateItemButton></section>
         {loading ? <FindlyLoading message="Carregando os dados da sua conta…" /> : error ? <div role="alert" className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-800"><p>{error}</p>{expired ? <Link href="/login" className="mt-3 inline-block font-semibold underline">Entrar novamente</Link> : <button onClick={reload} className="mt-3 rounded-lg border border-red-300 px-4 py-2 font-semibold">Tentar novamente</button>}</div> : data && <SummaryContent data={data} />}
         <section className="mt-8"><h2 className="mb-4 text-lg font-bold">Acesso rápido</h2><div className="grid gap-4 sm:grid-cols-3">
           {[{ href: "/meus-itens", title: "Meus itens", text: "Acompanhe seus registros.", Icon: Package }, { href: "/itens-perdidos?tipo=found", title: "Buscar objetos", text: "Consulte os itens encontrados.", Icon: Search }, { href: "/itens-perdidos", title: "Alertas de perda", text: "Veja o que estão procurando.", Icon: Bell }].map(({ href, title, text, Icon }) => <Link key={href} href={href} className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 hover:border-gray-400"><Icon size={23} className="shrink-0 text-gray-600" aria-hidden="true" /><div className="flex-1"><h3 className="text-sm font-semibold">{title}</h3><p className="mt-1 text-xs text-gray-600">{text}</p></div><ArrowRight size={17} aria-hidden="true" /></Link>)}

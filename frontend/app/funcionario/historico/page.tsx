@@ -1,12 +1,5 @@
-export default function Page() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold">
-        Página em desenvolvimento
-      </h1>
-      <p className="mt-2 text-gray-500">
-        Módulo Findly - Funcionários
-      </p>
-    </div>
-  );
+import StaffHistory from "../../../components/funcionario/StaffHistory";
+export default async function Page({ searchParams }: { searchParams: Promise<{ codigo?: string }> }) {
+  const { codigo } = await searchParams;
+  return <StaffHistory key={codigo ?? ""} initialCode={codigo ?? ""} />;
 }
