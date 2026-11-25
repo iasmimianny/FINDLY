@@ -214,7 +214,7 @@ export default function CreateItemForm({ onBusy, onCreated }: { onBusy: (busy: b
 
                 <div className="md:col-span-2">
                   <label htmlFor="item-description" className="mb-2 block text-sm font-semibold text-gray-700">
-                    Descrição detalhada
+                    Faça uma breve descrição do item
                   </label>
 
                   <textarea
