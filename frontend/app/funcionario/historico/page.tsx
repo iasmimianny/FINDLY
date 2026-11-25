@@ -3,3 +3,5 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ c
   const { codigo } = await searchParams;
   return <StaffHistory key={codigo ?? ""} initialCode={codigo ?? ""} />;
 }
+
+export const metadata = { title: "Histórico de movimentações" };

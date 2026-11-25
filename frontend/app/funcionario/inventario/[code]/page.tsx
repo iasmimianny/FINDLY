@@ -5,3 +5,5 @@ export default async function Page({ params }: { params: Promise<{ code: string 
   if (!/^[A-Z2-9]{10}$/.test(code)) notFound();
   return <StaffItemDetail code={code} />;
 }
+
+export const metadata = { title: "Detalhes do item" };

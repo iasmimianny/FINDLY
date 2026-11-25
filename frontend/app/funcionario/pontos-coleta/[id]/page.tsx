@@ -5,3 +5,5 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) notFound();
   return <CollectionPointDetail id={Number(id)} staffMode />;
 }
+
+export const metadata = { title: "Detalhes do ponto de coleta" };
