@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from django.core.exceptions import PermissionDenied
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
@@ -72,6 +73,21 @@ def current_collection_point(item: FoundItem) -> CollectionPoint | None:
     return record.collection_point if record else None
 
 
+def require_point_responsibility(item: FoundItem, user: User) -> None:
+    """Operações físicas/decisões pertencem ao operador do ponto atual."""
+    if user.is_admin:
+        return
+    point = current_collection_point(item)
+    if (
+        not user.is_operator
+        or point is None
+        or not point.operators.filter(pk=user.pk).exists()
+    ):
+        raise PermissionDenied(
+            "Você não é responsável pelo ponto de coleta deste item."
+        )
+
+
 @transaction.atomic
 def open_initial_custody(item: FoundItem, user: User, note: str = "") -> CustodyRecord:
     """Abre a custódia inicial com quem cadastrou o item.
@@ -123,7 +139,7 @@ def transfer_to_point(
 
     if (
         user.is_operator
-        and point.operators.exists()
+        and not user.is_admin
         and not point.operators.filter(pk=user.pk).exists()
     ):
         raise InvalidCustody("Você não é responsável por este ponto de coleta.")
@@ -138,6 +154,8 @@ def transfer_to_point(
         .filter(item=item, ended_at__isnull=True)
         .first()
     )
+    if current and current.collection_point_id is not None:
+        require_point_responsibility(item, user)
     if current and current.collection_point_id == point.pk:
         raise InvalidCustody("O item já está neste ponto de coleta.")
 
@@ -292,6 +310,7 @@ def approve_claim(claim: Claim, *, user: User, decision_note: str = "") -> Claim
             "O item precisa estar em custódia de um ponto de coleta para ser entregue."
         )
 
+    require_point_responsibility(item, user)
     previous_status = item.status
     now = timezone.now()
 
@@ -365,6 +384,11 @@ def reject_claim(claim: Claim, *, user: User | None, decision_note: str = "") ->
     claim = Claim.objects.select_for_update().select_related("item").get(pk=claim.pk)
     if claim.status != ClaimStatus.PENDING:
         raise InvalidClaim("Apenas reivindicações pendentes podem ser recusadas.")
+
+    if user is not None:
+        # Mesma ordem de bloqueio usada na aprovação/retirada.
+        item = FoundItem.objects.select_for_update().get(pk=claim.item_id)
+        require_point_responsibility(item, user)
 
     claim.status = ClaimStatus.REJECTED
     claim.reviewed_by = user
@@ -462,6 +486,7 @@ def confirm_withdrawal(raw_token: str, *, user: User) -> WithdrawalAuthority:
     if item.status != ItemStatus.AGUARDANDO_RETIRADA:
         raise InvalidWithdrawal("O item não está aguardando retirada neste momento.")
 
+    require_point_responsibility(item, user)
     previous_status = item.status
     point = current_collection_point(item)
 

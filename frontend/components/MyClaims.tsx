@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import PrivateLayout from "../app/components/funcionario/PrivateLayout";
 import { useResource, Failure, Pagination } from "./funcionario/StaffUI";
 import FindlyLoading from "./FindlyLoading";
+import ConfirmItemAction from "./ConfirmItemAction";
 import type { ClaimPage, Withdrawal } from "../lib/items";
 
 function date(value: string) {
@@ -38,7 +39,7 @@ export default function MyClaims() {
   const { data, error } = useResource<ClaimPage>(`/api/items/claims/?page=${page}`, version);
   return <PrivateLayout><main className="findly-page text-gray-900">
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div><h1 className="text-3xl font-bold">Minhas solicitações</h1><p className="mt-3 text-sm text-gray-600">Acompanhe suas reivindicações e apresente o QR Code quando a retirada for autorizada.</p></div>
+      <div><p className="findly-page-label text-xs font-bold uppercase tracking-widest">Minhas reivindicações</p><h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Minhas solicitações</h1><p className="mt-3 text-sm text-gray-600">Acompanhe suas reivindicações e apresente o QR Code quando a retirada for autorizada.</p></div>
       <button onClick={() => setVersion(v => v + 1)} className="rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm font-semibold">Atualizar lista</button>
     </header>
     {error ? <Failure message={error} retry={() => setVersion(v => v + 1)} /> : !data ? <FindlyLoading message="Carregando solicitações…" /> : <>
@@ -47,6 +48,7 @@ export default function MyClaims() {
         <p className="mt-2 text-xs text-gray-600">Código do item: {claim.item.public_code} · Enviada em {date(claim.created_at)}</p>
         <p className="mt-4 whitespace-pre-wrap break-words text-sm"><strong>Sua comprovação:</strong> {claim.message}</p>
         {claim.decision_note && <p className="mt-3 whitespace-pre-wrap break-words text-sm"><strong>Observação do funcionário:</strong> {claim.decision_note}</p>}
+        {claim.status === "PENDING" && <div className="mt-4"><ConfirmItemAction label="Cancelar solicitação" description="Deseja cancelar esta reivindicação? Ela deixará de aguardar análise do funcionário." endpoint={`/api/items/claims/${claim.id}/cancel/`} onChanged={() => setVersion(v => v + 1)} /></div>}
         {claim.status === "PENDING" && <p className="mt-4 text-sm text-gray-600">Aguardando análise do funcionário. Atualize a lista para consultar a decisão.</p>}
         {claim.withdrawal?.used_at ? <Authorization authority={claim.withdrawal} /> : claim.status === "APPROVED" && (claim.withdrawal ? <Authorization authority={claim.withdrawal} /> : <p className="mt-4 text-sm">Autorização ainda indisponível. Atualize a lista ou procure o funcionário responsável.</p>)}
       </article>)}</div>}

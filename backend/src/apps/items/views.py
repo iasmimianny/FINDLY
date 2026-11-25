@@ -162,6 +162,7 @@ class FoundItemViewSet(
         responses={200: FoundItemSerializer},
     )
     @action(detail=True, methods=["post"], url_path="status")
+    @transaction.atomic
     def change_status(self, request, public_code=None):
         """Aplica uma transição válida da máquina de estados."""
 
@@ -169,6 +170,14 @@ class FoundItemViewSet(
         serializer.is_valid(raise_exception=True)
 
         item = self.get_object()
+        item = FoundItem.objects.select_for_update().get(pk=item.pk)
+        from apps.operations.services import (
+            current_collection_point,
+            require_point_responsibility,
+        )
+
+        if current_collection_point(item) is not None:
+            require_point_responsibility(item, request.user)
 
         try:
             item = transition_found_item(
@@ -305,7 +314,7 @@ class LostReportViewSet(
         return LostReportSerializer
 
     def get_permissions(self):
-        if self.action in {"update", "partial_update", "cancel"}:
+        if self.action in {"update", "partial_update", "cancel", "complete"}:
             return [IsAuthenticated(), CanEditLostReport()]
 
         return [IsAuthenticated()]
@@ -324,10 +333,12 @@ class LostReportViewSet(
         responses={200: LostReportSerializer},
     )
     @action(detail=True, methods=["post"], url_path="cancel")
+    @transaction.atomic
     def cancel(self, request, public_code=None):
         """Marca o alerta como ``CANCELADO`` (ação do dono/admin)."""
 
         report = self.get_object()
+        report = LostReport.objects.select_for_update().get(pk=report.pk)
 
         if report.status != LostReportStatus.ABERTO:
             raise ValidationError(
@@ -342,4 +353,25 @@ class LostReportViewSet(
                 report,
                 context=self.get_serializer_context(),
             ).data
+        )
+
+    @extend_schema(
+        tags=["items"],
+        summary="Concluir alerta de perda como encontrado",
+        request=None,
+        responses={200: LostReportSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="complete")
+    @transaction.atomic
+    def complete(self, request, public_code=None):
+        report = self.get_object()
+        report = LostReport.objects.select_for_update().get(pk=report.pk)
+        if report.status != LostReportStatus.ABERTO:
+            raise ValidationError(
+                {"status": ["Apenas alertas abertos podem ser concluídos."]}
+            )
+        report.status = LostReportStatus.ENCONTRADO
+        report.save(update_fields=["status", "updated_at"])
+        return Response(
+            LostReportSerializer(report, context=self.get_serializer_context()).data
         )

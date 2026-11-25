@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import ItemPhotos from "../ItemPhotos";
+import ConfirmItemAction from "../ConfirmItemAction";
 import ClaimModal from "./ClaimModal";
 import FoundItemModal from "./FoundItemModal";
 
@@ -24,12 +25,14 @@ type Props = {
   item: Item;
   kind: ItemKind;
   viewerId?: number | string;
+  onChanged?: () => void;
 };
 
 export default function ItemCard({
   item,
   kind,
   viewerId,
+  onChanged,
 }: Props) {
   const [action, setAction] = useState<
     "claim" | "found" | null
@@ -107,6 +110,10 @@ export default function ItemCard({
           )}
         </details>
 
+        {mine && kind === "lost" && item.status === "ABERTO" && <div className="mt-5 flex flex-wrap gap-3 border-t border-gray-100 pt-4">
+          <ConfirmItemAction label="Já encontrei meu item" description="Confirme somente se você já encontrou seu pertence. O alerta será concluído e sairá da aba Perdidos do mural; o histórico continuará em Meus itens." endpoint={`/api/items/lost/${item.public_code}/complete/`} onChanged={() => { setSuccess("Alerta concluído como encontrado."); onChanged?.(); }} />
+          <ConfirmItemAction label="Cancelar alerta" description="Deseja cancelar este alerta de perda? Ele sairá do mural e continuará disponível no seu histórico." endpoint={`/api/items/lost/${item.public_code}/cancel/`} onChanged={() => { setSuccess("Alerta cancelado."); onChanged?.(); }} />
+        </div>}
         {kind === "found" && (
           <ItemPhotos
             code={item.public_code}

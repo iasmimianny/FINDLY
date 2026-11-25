@@ -55,10 +55,13 @@ export function validItemPath(
     }
   }
 
+  if (segments.length === 3 && segments[0] === "lost" && codePattern.test(segments[1]) && ["cancel", "complete"].includes(segments[2])) return method === "POST";
+  if (segments.length === 3 && segments[0] === "claims" && /^[1-9]\d*$/.test(segments[1]) && segments[2] === "cancel") return method === "POST";
   return false;
 }
 
 function itemTarget(segments: string[]) {
+  if (segments[0] === "claims" && segments.length === 3) return `/api/operations/claims/${segments[1]}/cancel/`;
   // Solicitações de retirada.
   if (
     segments.length === 1 &&
@@ -226,8 +229,11 @@ export async function proxyItems(
               message: data.message.trim(),
             });
           } else {
-            // Cadastro normal dos itens.
-            body = JSON.stringify(data);
+            const actionOnly = segments.length === 3 && ["cancel", "complete"].includes(segments[2]);
+            if (actionOnly && (!data || typeof data !== "object" || Array.isArray(data) || Object.keys(data).length)) {
+              return NextResponse.json({ detail: "Esta ação não aceita campos adicionais." }, { status: 400, headers });
+            }
+            body = JSON.stringify(actionOnly ? {} : data);
           }
         } catch {
           return NextResponse.json(

@@ -30,8 +30,13 @@ class IsReporterOrOperatorOrAdmin(BasePermission):
             return True
         if not user or not user.is_authenticated:
             return False
-        if user.is_admin or user.is_operator:
+        if user.is_admin:
             return True
+        if user.is_operator:
+            from apps.operations.services import current_collection_point
+
+            point = current_collection_point(obj)
+            return point is None or point.operators.filter(pk=user.pk).exists()
         return obj.reported_by_id == user.pk and obj.status == ItemStatus.REPORTADO
 
 
@@ -51,7 +56,7 @@ class CanEditLostReport(BasePermission):
             return False
         if user.is_admin:
             return True
-        if getattr(view, "action", None) == "cancel":
+        if getattr(view, "action", None) in {"cancel", "complete"}:
             # O dono precisa chegar na view para receber o 400 explicativo quando
             # o alerta já não está mais ABERTO.
             return obj.owner_id == user.pk
@@ -67,8 +72,13 @@ class CanManageItemPhotos(BasePermission):
         user = request.user
         if not user or not user.is_authenticated:
             return False
-        if user.is_admin or user.is_operator:
+        if user.is_admin:
             return True
+        if user.is_operator:
+            from apps.operations.services import current_collection_point
+
+            point = current_collection_point(obj)
+            return point is None or point.operators.filter(pk=user.pk).exists()
         if obj.reported_by_id != user.pk:
             return False
         return not obj.is_terminal

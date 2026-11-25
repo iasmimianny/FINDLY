@@ -66,3 +66,6 @@ body {
 
 /* A área do funcionário já recebe as margens no layout. */
 .findly-staff-content .findly-page { padding: 0; }
+
+/* Mesma cor do rótulo Painel inicial em todos os cabeçalhos internos. */
+.findly-page-label { color: var(--color-blue-700, #1d4ed8); }
